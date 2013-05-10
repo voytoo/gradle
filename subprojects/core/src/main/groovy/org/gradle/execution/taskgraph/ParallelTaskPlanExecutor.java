@@ -49,18 +49,14 @@ class ParallelTaskPlanExecutor extends DefaultTaskPlanExecutor {
     }
 
     public void process(final TaskExecutionPlan taskExecutionPlan, final TaskExecutionListener taskListener) {
-        stateCacheAccess.longRunningOperation("Executing all tasks", new Runnable() {
-            public void run() {
-                DefaultExecutorFactory factory = new DefaultExecutorFactory();
-                try {
-                    doProcess(taskExecutionPlan, taskListener, factory);
-                    // TODO This needs to wait until all tasks have been executed, not just started....
-                    taskExecutionPlan.awaitCompletion();
-                } finally {
-                    factory.stop();
-                }
-            }
-        });
+        DefaultExecutorFactory factory = new DefaultExecutorFactory();
+        try {
+            doProcess(taskExecutionPlan, taskListener, factory);
+            // TODO This needs to wait until all tasks have been executed, not just started....
+            taskExecutionPlan.awaitCompletion();
+        } finally {
+            factory.stop();
+        }
     }
 
     private void doProcess(TaskExecutionPlan taskExecutionPlan, TaskExecutionListener taskListener, ExecutorFactory factory) {
@@ -103,14 +99,14 @@ class ParallelTaskPlanExecutor extends DefaultTaskPlanExecutor {
                 executeTaskWithCacheLock(task);
             }
             long total = System.currentTimeMillis() - start;
-            LOGGER.info("Parallel worker [{}] stopped, busy: {}, idle: {}, waited for cache: {}", Thread.currentThread(), prettyTime(busyMs), prettyTime(total - busyMs), prettyTime(waitedForCacheMs));
+            LOGGER.lifecycle("Parallel worker completed. Busy: {}, idle: {}, worker name: {}", prettyTime(busyMs), prettyTime(total - busyMs), Thread.currentThread());
         }
 
         private void executeTaskWithCacheLock(final TaskInfo taskInfo) {
             final String taskPath = taskInfo.getTask().getPath();
             LOGGER.info(taskPath + " (" + Thread.currentThread() + " - start");
             final long start = System.currentTimeMillis();
-            stateCacheAccess.useCache("Executing " + taskPath, new Runnable() {
+            stateCacheAccess.useCache(new Runnable() {
                 public void run() {
                     waitedForCacheMs += System.currentTimeMillis() - start;
                     processTask(taskInfo, taskExecutionPlan, taskListener);

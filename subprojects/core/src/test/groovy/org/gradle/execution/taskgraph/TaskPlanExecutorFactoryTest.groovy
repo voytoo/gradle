@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package org.gradle.execution.taskgraph;
+package org.gradle.execution.taskgraph
 
-
-import org.gradle.api.internal.changedetection.state.TaskArtifactStateCacheAccess
+import org.gradle.api.internal.changedetection.state.TaskArtifactStateCacheAccess;
 import spock.lang.Specification
 
 public class TaskPlanExecutorFactoryTest extends Specification {

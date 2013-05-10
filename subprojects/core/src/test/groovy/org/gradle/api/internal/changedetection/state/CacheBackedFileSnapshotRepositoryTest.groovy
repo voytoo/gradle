@@ -16,29 +16,33 @@
 package org.gradle.api.internal.changedetection.state
 
 import org.gradle.cache.PersistentIndexedCache
+import org.gradle.test.fixtures.ConcurrentTestUtil
+import org.junit.Rule
 import spock.lang.Specification
 
 class CacheBackedFileSnapshotRepositoryTest extends Specification {
     final TaskArtifactStateCacheAccess cacheAccess = Mock()
     final PersistentIndexedCache<Object, Object> indexedCache = Mock()
     FileSnapshotRepository repository
+    @Rule ConcurrentTestUtil concurrent = new ConcurrentTestUtil()
 
     def setup() {
         1 * cacheAccess.createCache("fileSnapshots", Object, Object) >> indexedCache
-        repository = new CacheBackedFileSnapshotRepository(cacheAccess)
+        repository = new CacheBackedFileSnapshotRepository(cacheAccess, 10)
     }
 
-    def "assigns an id when a snapshot is added"() {
+    def "assigns new id when a snapshot is added"() {
         FileCollectionSnapshot snapshot = Mock()
 
         when:
         def id = repository.add(snapshot)
+        def id2 = repository.add(snapshot)
 
         then:
-        id == 4
-        1 * indexedCache.get("nextId") >> (4 as Long)
-        1 * indexedCache.put("nextId", 5)
-        1 * indexedCache.put(4, snapshot)
+        id == 10
+        id2 == 11
+        1 * indexedCache.put(10, snapshot)
+        1 * indexedCache.put(11, snapshot)
         0 * _._
     }
 

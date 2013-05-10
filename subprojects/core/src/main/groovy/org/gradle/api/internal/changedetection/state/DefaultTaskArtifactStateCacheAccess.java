@@ -15,71 +15,62 @@
  */
 package org.gradle.api.internal.changedetection.state;
 
-import org.gradle.internal.Factory;
+import org.gradle.api.internal.changedetection.LibrarianThread;
 import org.gradle.api.invocation.Gradle;
 import org.gradle.cache.CacheRepository;
 import org.gradle.cache.PersistentCache;
 import org.gradle.cache.PersistentIndexedCache;
-import org.gradle.messaging.serialize.Serializer;
 import org.gradle.cache.internal.FileLockManager;
-import org.gradle.listener.LazyCreationProxy;
-
-import java.io.File;
+import org.gradle.internal.Factory;
+import org.gradle.messaging.serialize.Serializer;
 
 public class DefaultTaskArtifactStateCacheAccess implements TaskArtifactStateCacheAccess {
-    private final Gradle gradle;
-    private final CacheRepository cacheRepository;
-    private PersistentCache cache;
+    private LibrarianThread librarian;
 
-    public DefaultTaskArtifactStateCacheAccess(Gradle gradle, CacheRepository cacheRepository) {
-        this.gradle = gradle;
-        this.cacheRepository = cacheRepository;
-    }
-
-    private PersistentCache getCache() {
-        if (cache == null) {
-            cache = cacheRepository
-                    .cache("taskArtifacts")
-                    .forObject(gradle)
-                    .withDisplayName("task artifact state cache")
-                    .withLockMode(FileLockManager.LockMode.Exclusive)
-                    .open();
-        }
-        return cache;
+    public DefaultTaskArtifactStateCacheAccess(final Gradle gradle, final CacheRepository cacheRepository) {
+        this.librarian = new LibrarianThread(new Factory<PersistentCache>() {
+            public PersistentCache create() {
+                return cacheRepository
+                        .cache("taskArtifacts")
+                        .forObject(gradle)
+                        .withDisplayName("task artifact state cache")
+                        .withLockMode(FileLockManager.LockMode.Exclusive)
+                        .open();
+            }
+        });
     }
 
     public <K, V> PersistentIndexedCache<K, V> createCache(final String cacheName, final Class<K> keyType, final Class<V> valueType) {
-        Factory<PersistentIndexedCache> factory = new Factory<PersistentIndexedCache>() {
-            public PersistentIndexedCache create() {
-                return getCache().createCache(cacheFile(cacheName), keyType, valueType);
-            }
-        };
-        return new LazyCreationProxy<PersistentIndexedCache>(PersistentIndexedCache.class, factory).getSource();
+        return librarian.createCache(cacheName, keyType, valueType);
     }
 
     public <K, V> PersistentIndexedCache<K, V> createCache(final String cacheName, final Class<K> keyType, final Class<V> valueType, final Serializer<V> valueSerializer) {
-        Factory<PersistentIndexedCache> factory = new Factory<PersistentIndexedCache>() {
-            public PersistentIndexedCache create() {
-                return getCache().createCache(cacheFile(cacheName), keyType, valueSerializer);
-            }
-        };
-        return new LazyCreationProxy<PersistentIndexedCache>(PersistentIndexedCache.class, factory).getSource();
-
+        return librarian.createCache(cacheName, keyType, valueSerializer);
     }
 
-    private File cacheFile(String cacheName) {
-        return new File(getCache().getBaseDir(), cacheName + ".bin");
+    public void stop() {
+        librarian.stop();
     }
 
-    public <T> T useCache(String operationDisplayName, Factory<? extends T> action) {
-        return getCache().useCache(operationDisplayName, action);
+    public void start() {
+        librarian.start();
     }
 
-    public void useCache(String operationDisplayName, Runnable action) {
-        getCache().useCache(operationDisplayName, action);
+    public void useCache(Runnable runnable) {
+        librarian.addCacheUser();
+        try {
+            runnable.run();
+        } finally {
+            librarian.removeCacheUser();
+        }
     }
 
-    public void longRunningOperation(String operationDisplayName, Runnable action) {
-        getCache().longRunningOperation(operationDisplayName, action);
+    public void longRunningOperation(Runnable runnable) {
+        librarian.removeCacheUser();
+        try {
+            runnable.run();
+        } finally {
+            librarian.addCacheUser();
+        }
     }
 }

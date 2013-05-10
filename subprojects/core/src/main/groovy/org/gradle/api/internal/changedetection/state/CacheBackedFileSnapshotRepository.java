@@ -20,16 +20,23 @@ import org.gradle.cache.PersistentIndexedCache;
 public class CacheBackedFileSnapshotRepository implements FileSnapshotRepository {
     private final PersistentIndexedCache<Object, Object> cache;
 
+    private long idSeed = System.currentTimeMillis();
+    private final Object lock = new Object();
+
     public CacheBackedFileSnapshotRepository(TaskArtifactStateCacheAccess cacheAccess) {
-        cache = cacheAccess.createCache("fileSnapshots", Object.class, Object.class);
+        this(cacheAccess, System.currentTimeMillis());
+    }
+
+    public CacheBackedFileSnapshotRepository(TaskArtifactStateCacheAccess cacheAccess, long idSeed) {
+        this.cache = cacheAccess.createCache("fileSnapshots", Object.class, Object.class);
+        this.idSeed = idSeed;
     }
 
     public Long add(FileCollectionSnapshot snapshot) {
-        Long id = (Long) cache.get("nextId");
-        if (id == null) {
-            id = 1L;
+        Long id;
+        synchronized (lock) {
+            id = idSeed++;
         }
-        cache.put("nextId", id + 1);
         cache.put(id, snapshot);
         return id;
     }
