@@ -18,8 +18,15 @@ package org.gradle.execution.taskgraph;
 
 import org.gradle.api.execution.TaskExecutionListener;
 import org.gradle.api.internal.TaskInternal;
+import org.gradle.api.internal.changedetection.state.TaskArtifactStateCacheAccess;
 
 class DefaultTaskPlanExecutor implements TaskPlanExecutor {
+
+    private TaskArtifactStateCacheAccess taskArtifactStateCacheAccess;
+
+    public DefaultTaskPlanExecutor(TaskArtifactStateCacheAccess taskArtifactStateCacheAccess) {
+        this.taskArtifactStateCacheAccess = taskArtifactStateCacheAccess;
+    }
 
     public void process(TaskExecutionPlan taskExecutionPlan, TaskExecutionListener taskListener) {
         TaskInfo taskInfo;
@@ -29,9 +36,13 @@ class DefaultTaskPlanExecutor implements TaskPlanExecutor {
         taskExecutionPlan.awaitCompletion();
     }
 
-    protected void processTask(TaskInfo taskInfo, TaskExecutionPlan taskExecutionPlan, TaskExecutionListener taskListener) {
+    protected void processTask(final TaskInfo taskInfo, TaskExecutionPlan taskExecutionPlan, final TaskExecutionListener taskListener) {
         try {
-            executeTask(taskInfo, taskListener);
+            taskArtifactStateCacheAccess.useCache(new Runnable() {
+                public void run() {
+                    executeTask(taskInfo, taskListener);
+                }
+            });
         } catch (Throwable e) {
             taskInfo.setExecutionFailure(e);
         } finally {

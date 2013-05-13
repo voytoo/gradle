@@ -36,15 +36,14 @@ import static org.gradle.util.Clock.prettyTime;
 class ParallelTaskPlanExecutor extends DefaultTaskPlanExecutor {
     private static final Logger LOGGER = Logging.getLogger(ParallelTaskPlanExecutor.class);
 
-    private final TaskArtifactStateCacheAccess stateCacheAccess;
     private final int executorCount;
 
     public ParallelTaskPlanExecutor(TaskArtifactStateCacheAccess cacheAccess, int numberOfParallelExecutors) {
+        super(cacheAccess);
         if (numberOfParallelExecutors < 1) {
             throw new IllegalArgumentException("Not a valid number of parallel executors: " + numberOfParallelExecutors);
         }
 
-        this.stateCacheAccess = cacheAccess;
         this.executorCount = numberOfParallelExecutors;
     }
 
@@ -85,7 +84,6 @@ class ParallelTaskPlanExecutor extends DefaultTaskPlanExecutor {
         private final TaskExecutionPlan taskExecutionPlan;
         private final TaskExecutionListener taskListener;
         private long busyMs;
-        private long waitedForCacheMs;
 
         private TaskExecutorWorker(TaskExecutionPlan taskExecutionPlan, TaskExecutionListener taskListener) {
             this.taskExecutionPlan = taskExecutionPlan;
@@ -96,25 +94,17 @@ class ParallelTaskPlanExecutor extends DefaultTaskPlanExecutor {
             long start = System.currentTimeMillis();
             TaskInfo task;
             while((task = taskExecutionPlan.getTaskToExecute()) != null) {
-                executeTaskWithCacheLock(task);
+                final String taskPath = task.getTask().getPath();
+                LOGGER.info(taskPath + " (" + Thread.currentThread() + " - start");
+                final long start1 = System.currentTimeMillis();
+                processTask(task, taskExecutionPlan, taskListener);
+                busyMs += System.currentTimeMillis() - start1;
+
+                LOGGER.info(taskPath + " (" + Thread.currentThread() + ") - complete");
             }
             long total = System.currentTimeMillis() - start;
             LOGGER.lifecycle("Parallel worker completed. Busy: {}, idle: {}, worker name: {}", prettyTime(busyMs), prettyTime(total - busyMs), Thread.currentThread());
         }
 
-        private void executeTaskWithCacheLock(final TaskInfo taskInfo) {
-            final String taskPath = taskInfo.getTask().getPath();
-            LOGGER.info(taskPath + " (" + Thread.currentThread() + " - start");
-            final long start = System.currentTimeMillis();
-            stateCacheAccess.useCache(new Runnable() {
-                public void run() {
-                    waitedForCacheMs += System.currentTimeMillis() - start;
-                    processTask(taskInfo, taskExecutionPlan, taskListener);
-                }
-            });
-            busyMs += System.currentTimeMillis() - start;
-
-            LOGGER.info(taskPath + " (" + Thread.currentThread() + ") - complete");
-        }
     }
 }
