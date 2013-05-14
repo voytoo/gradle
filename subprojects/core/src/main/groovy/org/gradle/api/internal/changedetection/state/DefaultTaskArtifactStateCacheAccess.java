@@ -42,11 +42,15 @@ public class DefaultTaskArtifactStateCacheAccess implements TaskArtifactStateCac
     }
 
     public <K, V> PersistentIndexedCache<K, V> createCache(final String cacheName, final Class<K> keyType, final Class<V> valueType) {
-        return librarian.createCache(cacheName, keyType, valueType);
+        return inMemory(librarian.createCache(cacheName, keyType, valueType));
+    }
+
+    private <K, V> PersistentIndexedCache<K, V> inMemory(PersistentIndexedCache delegate) {
+        return new InMemoryDelegatingCache(delegate);
     }
 
     public <K, V> PersistentIndexedCache<K, V> createCache(final String cacheName, final Class<K> keyType, final Class<V> valueType, final Serializer<V> valueSerializer) {
-        return librarian.createCache(cacheName, keyType, valueSerializer);
+        return inMemory(librarian.createCache(cacheName, keyType, valueSerializer));
     }
 
     public void stop() {
