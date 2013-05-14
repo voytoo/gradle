@@ -28,7 +28,8 @@ public class DefaultTaskArtifactStateCacheAccess implements TaskArtifactStateCac
     private LibrarianThread librarian;
 
     public DefaultTaskArtifactStateCacheAccess(final Gradle gradle, final CacheRepository cacheRepository) {
-        this.librarian = new LibrarianThread(new Factory<PersistentCache>() {
+        boolean parallelExecution = gradle.getStartParameter().getParallelThreadCount() != 0;
+        this.librarian = new LibrarianThread(parallelExecution, new Factory<PersistentCache>() {
             public PersistentCache create() {
                 return cacheRepository
                         .cache("taskArtifacts")

@@ -44,9 +44,11 @@ public class LibrarianThread<K, V> {
     private Librarian librarian;
     private Thread thread;
     private PersistentCache cache;
+    private boolean parallel;
     private final Factory<PersistentCache> cacheFactory;
 
-    public LibrarianThread(Factory<PersistentCache> cacheFactory) {
+    public LibrarianThread(boolean parallel, Factory<PersistentCache> cacheFactory) {
+        this.parallel = parallel;
         this.cacheFactory = cacheFactory;
         //creation of the cache must happen in the thread so that lock is owned by correct thread
         this.librarian = new Librarian();
@@ -63,7 +65,11 @@ public class LibrarianThread<K, V> {
     }
 
     public synchronized void start() {
-        thread.start();
+        if (parallel) {
+            thread.start();
+        } else {
+            cache = cacheFactory.create();
+        }
     }
 
     public boolean isStopped() {
@@ -71,19 +77,23 @@ public class LibrarianThread<K, V> {
     }
 
     public PersistentIndexedCache<K, V> sync(final PersistentIndexedCache delegate) {
-        return new PersistentIndexedCache<K, V>() {
-            public V get(K key) {
-                return librarian.get(key, delegate);
-            }
+        if (parallel) {
+            return new PersistentIndexedCache<K, V>() {
+                public V get(K key) {
+                    return librarian.get(key, delegate);
+                }
 
-            public void put(K key, V value) {
-                librarian.put(key, value, delegate);
-            }
+                public void put(K key, V value) {
+                    librarian.put(key, value, delegate);
+                }
 
-            public void remove(K key) {
-                librarian.remove(key, delegate);
-            }
-        };
+                public void remove(K key) {
+                    librarian.remove(key, delegate);
+                }
+            };
+        } else {
+            return delegate;
+        }
     }
 
     public PersistentCache getCache() {

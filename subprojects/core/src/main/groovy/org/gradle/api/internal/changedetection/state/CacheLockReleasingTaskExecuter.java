@@ -30,7 +30,6 @@ public class CacheLockReleasingTaskExecuter implements TaskExecuter {
     }
 
     public void execute(final TaskInternal task, final TaskStateInternal state, final TaskExecutionContext context) {
-        //sf
         cacheAccess.longRunningOperation(new Runnable() {
             public void run() {
                 executer.execute(task, state, context);

@@ -28,12 +28,16 @@ class DefaultTaskPlanExecutor implements TaskPlanExecutor {
         this.taskArtifactStateCacheAccess = taskArtifactStateCacheAccess;
     }
 
-    public void process(TaskExecutionPlan taskExecutionPlan, TaskExecutionListener taskListener) {
-        TaskInfo taskInfo;
-        while ((taskInfo = taskExecutionPlan.getTaskToExecute()) != null) {
-            processTask(taskInfo, taskExecutionPlan, taskListener);
-        }
-        taskExecutionPlan.awaitCompletion();
+    public void process(final TaskExecutionPlan taskExecutionPlan, final TaskExecutionListener taskListener) {
+        taskArtifactStateCacheAccess.useCache(new Runnable() {
+            public void run() {
+                TaskInfo taskInfo;
+                while ((taskInfo = taskExecutionPlan.getTaskToExecute()) != null) {
+                    processTask(taskInfo, taskExecutionPlan, taskListener);
+                }
+                taskExecutionPlan.awaitCompletion();
+            }
+        });
     }
 
     protected void processTask(final TaskInfo taskInfo, TaskExecutionPlan taskExecutionPlan, final TaskExecutionListener taskListener) {
