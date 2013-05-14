@@ -17,6 +17,7 @@ package org.gradle.api.internal.changedetection.state;
 
 import org.gradle.api.internal.TaskInternal;
 import org.gradle.cache.PersistentIndexedCache;
+import org.gradle.internal.Factory;
 import org.gradle.messaging.serialize.DefaultSerializer;
 
 import java.io.File;
@@ -155,11 +156,11 @@ public class CacheBackedTaskHistoryRepository implements TaskHistoryRepository {
         @Override
         public FileCollectionSnapshot getOutputFilesSnapshot() {
             if (outputFilesSnapshot == null) {
-//                outputFilesSnapshot = cacheAccess.useCache("fetch output files", new Factory<FileCollectionSnapshot>() {
-//                    public FileCollectionSnapshot create() {
+                outputFilesSnapshot = cacheAccess.useCache("fetch output files", new Factory<FileCollectionSnapshot>() {
+                    public FileCollectionSnapshot create() {
                         return snapshotRepository.get(outputFilesSnapshotId);
-//                    }
-//                });
+                    }
+                });
             }
             return outputFilesSnapshot;
         }

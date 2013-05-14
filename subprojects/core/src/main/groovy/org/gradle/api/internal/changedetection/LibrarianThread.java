@@ -26,9 +26,7 @@ import org.gradle.listener.LazyCreationProxy;
 import org.gradle.messaging.serialize.Serializer;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -138,16 +136,25 @@ public class LibrarianThread<K, V> {
         librarian.removeUser();
     }
 
-    public void useCache(Runnable runnable) {
+    public void useCache(final Runnable runnable) {
+        useCache("locking", new Factory<Object>() {
+            public Object create() {
+                runnable.run();
+                return null;
+            };
+        });
+    }
+
+    public <T> T useCache(String operationDisplayName, Factory<? extends T> action) {
         if (parallel) {
             librarian.addUser();
             try {
-                runnable.run();
+                return action.create();
             } finally {
                 librarian.removeUser();
             }
         } else {
-            cache.useCache("locking", runnable);
+            return cache.useCache(operationDisplayName, action);
         }
     }
 
@@ -188,7 +195,7 @@ public class LibrarianThread<K, V> {
         private int unlockedCache;
         private int cacheUnlockingFrequency = 0;//Integer.valueOf(System.getProperty("cacheFrequency", "2000"));
         private long totalCacheUnlocked;
-        private int users;
+        private Set users = new HashSet();
         private State state;
 
         public V get(final K key, final PersistentIndexedCache delegate) {
@@ -305,7 +312,7 @@ public class LibrarianThread<K, V> {
                             break;
                         }
                         long start = System.currentTimeMillis();
-                        if (users == 0) {
+                        if (users.isEmpty()) {
                             nextUnlock = start + cacheUnlockingFrequency;
                             unlockedCache++;
                             cache.longRunningOperation("Librarian is idle and awaits task history cache requests", new Runnable() {
@@ -352,7 +359,7 @@ public class LibrarianThread<K, V> {
         public void addUser() {
             lock.lock();
             try {
-                users++;
+                users.add(Thread.currentThread());
             } finally {
                 lock.unlock();
             }
@@ -361,7 +368,7 @@ public class LibrarianThread<K, V> {
         public void removeUser() {
             lock.lock();
             try {
-                users--;
+                users.remove(Thread.currentThread());
             } finally {
                 lock.unlock();
             }

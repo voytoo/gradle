@@ -64,4 +64,8 @@ public class DefaultTaskArtifactStateCacheAccess implements TaskArtifactStateCac
     public void longRunningOperation(Runnable runnable) {
         librarian.longRunningOperation(runnable);
     }
+
+    public <T> T useCache(String operationDisplayName, Factory<? extends T> action) {
+        return (T) librarian.useCache(operationDisplayName, action);
+    }
 }

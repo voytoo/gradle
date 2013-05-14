@@ -16,6 +16,7 @@
 package org.gradle.api.internal.changedetection.state;
 
 import org.gradle.cache.PersistentIndexedCache;
+import org.gradle.internal.Factory;
 import org.gradle.messaging.serialize.Serializer;
 
 public interface TaskArtifactStateCacheAccess {
@@ -31,4 +32,6 @@ public interface TaskArtifactStateCacheAccess {
     void useCache(Runnable runnable);
 
     void longRunningOperation(Runnable runnable);
+
+    <T> T useCache(String operationDisplayName, Factory<? extends T> action);
 }
