@@ -58,20 +58,10 @@ public class DefaultTaskArtifactStateCacheAccess implements TaskArtifactStateCac
     }
 
     public void useCache(Runnable runnable) {
-        librarian.addCacheUser();
-        try {
-            runnable.run();
-        } finally {
-            librarian.removeCacheUser();
-        }
+        librarian.useCache(runnable);
     }
 
     public void longRunningOperation(Runnable runnable) {
-        librarian.removeCacheUser();
-        try {
-            runnable.run();
-        } finally {
-            librarian.addCacheUser();
-        }
+        librarian.longRunningOperation(runnable);
     }
 }

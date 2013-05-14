@@ -138,6 +138,32 @@ public class LibrarianThread<K, V> {
         librarian.removeUser();
     }
 
+    public void useCache(Runnable runnable) {
+        if (parallel) {
+            librarian.addUser();
+            try {
+                runnable.run();
+            } finally {
+                librarian.removeUser();
+            }
+        } else {
+            cache.useCache("locking", runnable);
+        }
+    }
+
+    public void longRunningOperation(Runnable runnable) {
+        if (parallel) {
+            librarian.removeUser();
+            try {
+                runnable.run();
+            } finally {
+                librarian.addUser();
+            }
+        } else {
+            cache.longRunningOperation("unlocking", runnable);
+        }
+    }
+
     enum State { reading, writing, idle }
 
     private class Librarian implements Runnable {
