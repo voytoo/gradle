@@ -25,6 +25,9 @@ public class InMemoryDelegatingCache<K,V> implements PersistentIndexedCache<K, V
     }
 
     public V get(K key) {
+        if (key == null) {
+            return delegate.get(key);
+        }
         Answer out = cache.get(key);
         if (out != null) {
             return (V) out.answer;
@@ -35,12 +38,16 @@ public class InMemoryDelegatingCache<K,V> implements PersistentIndexedCache<K, V
     }
 
     public void put(K key, V value) {
-        cache.put(key, new Answer(value));
+        if (key != null) {
+            cache.put(key, new Answer(value));
+        }
         delegate.put(key, value);
     }
 
     public void remove(K key) {
-        cache.remove(key);
+        if (key != null) {
+            cache.remove(key);
+        }
         delegate.remove(key);
     }
 }
