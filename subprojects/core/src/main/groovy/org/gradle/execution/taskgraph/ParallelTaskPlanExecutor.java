@@ -105,6 +105,5 @@ class ParallelTaskPlanExecutor extends DefaultTaskPlanExecutor {
             long total = System.currentTimeMillis() - start;
             LOGGER.lifecycle("Parallel worker completed. Busy: {}, idle: {}, worker name: {}", prettyTime(busyMs), prettyTime(total - busyMs), Thread.currentThread());
         }
-
     }
 }
