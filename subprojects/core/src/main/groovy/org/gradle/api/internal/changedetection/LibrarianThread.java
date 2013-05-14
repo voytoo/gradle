@@ -128,6 +128,8 @@ public class LibrarianThread<K, V> {
         librarian.removeUser();
     }
 
+    enum State { reading, writing, idle }
+
     private class Librarian implements Runnable {
 
         private final Lock lock = new ReentrantLock();
@@ -138,12 +140,20 @@ public class LibrarianThread<K, V> {
         private final LinkedList<Runnable> writes = new LinkedList<Runnable>();
         private boolean stopRequested;
         private boolean stopped;
-        private long totalBlocked;
+        private long blockedByReading;
+        private long blockedByReadingCount;
+        private long blockedByWriting;
+        private long blockedByWritingCount;
+        private long blockedByIdle;
+        private long blockedByIdleCount;
+        private long readRequests;
+        private long writeRequests;
         private long totalIdle;
         private int unlockedCache;
         private int cacheUnlockingFrequency = 0;//Integer.valueOf(System.getProperty("cacheFrequency", "2000"));
         private long totalCacheUnlocked;
         private int users;
+        private State state;
 
         public V get(final K key, final PersistentIndexedCache delegate) {
             lock.lock();
@@ -193,19 +203,25 @@ public class LibrarianThread<K, V> {
 
         private V waitFor(Factory<V> factory) {
             readQueue.add(factory);
+            long start = System.currentTimeMillis();
+            State current = state;
             accessRequested.signalAll();
             Answer<V> answer;
             while((answer = answers.get(factory)) == null) {
                 try {
-                    long start = System.currentTimeMillis();
                     answerReady.await();
-                    totalBlocked += System.currentTimeMillis() - start;
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
                 if (stopRequested) {
                     throw new RuntimeException("Stop requested while waiting for cache value");
                 }
+            }
+            long duration = System.currentTimeMillis() - start;
+            switch(current) {
+                case reading: blockedByReading += duration; blockedByReadingCount++; break;
+                case writing: blockedByWriting += duration; blockedByWritingCount++; break;
+                case idle: blockedByIdle += duration; blockedByIdleCount++; break;
             }
             return answer.value;
         }
@@ -226,8 +242,8 @@ public class LibrarianThread<K, V> {
             }
             long totalTime = System.currentTimeMillis() - start;
             long busyTime = totalTime - totalIdle;
-            LOG.lifecycle("Task history access thread. Busy: {}, idle: {}, blocked reads: {}, Cache unlocked: {}, Cache unlock count: {}",
-                    prettyTime(busyTime), prettyTime(totalIdle), prettyTime(totalBlocked), prettyTime(totalCacheUnlocked), unlockedCache);
+            LOG.lifecycle("Task history access thread. Busy: {} (reads: {}, writes: {}), idle: {}, blocked read due to: [reading {}:{}, writing {}:{}, other {}:{}], Cache unlocked: {}, Cache unlock count: {}",
+                    prettyTime(busyTime), readRequests, writeRequests, prettyTime(totalIdle), blockedByReadingCount, prettyTime(blockedByReading), blockedByWritingCount, prettyTime(blockedByWriting), blockedByIdleCount, prettyTime(blockedByIdle), prettyTime(totalCacheUnlocked), unlockedCache);
         }
 
         private void runNow() {
@@ -236,14 +252,19 @@ public class LibrarianThread<K, V> {
                 long nextUnlock = System.currentTimeMillis() + cacheUnlockingFrequency;
                 while(true) {
                     if (!readQueue.isEmpty()) {
+                        state = State.reading;
+                        readRequests++;
                         Factory<V> factory = readQueue.removeFirst();
                         V value = factory.create();
                         answers.put(factory, new Answer<V>(value));
                         answerReady.signalAll();
                     } else if (!writes.isEmpty()) {
+                        state = State.writing;
+                        writeRequests++;
                         Runnable runnable = writes.removeFirst();
                         runnable.run();
                     } else {
+                        state = State.idle;
                         if (stopRequested) {
                             break;
                         }
