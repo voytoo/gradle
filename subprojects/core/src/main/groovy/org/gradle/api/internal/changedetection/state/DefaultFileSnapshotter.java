@@ -18,14 +18,19 @@ package org.gradle.api.internal.changedetection.state;
 
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.internal.file.collections.SimpleFileCollection;
+import org.gradle.api.logging.Logger;
+import org.gradle.api.logging.Logging;
 import org.gradle.util.ChangeListener;
+import org.gradle.util.Clock;
 import org.gradle.util.NoOpChangeListener;
+import org.gradle.util.hash.HashUtil;
 
 import java.io.File;
 import java.math.BigInteger;
 import java.util.*;
 
 public class DefaultFileSnapshotter implements FileSnapshotter {
+    private final static Logger LOG = Logging.getLogger(HashUtil.class);
     private final Hasher hasher;
     private TaskArtifactStateCacheAccess cacheAccess;
 
@@ -39,8 +44,12 @@ public class DefaultFileSnapshotter implements FileSnapshotter {
     }
 
     public FileCollectionSnapshot snapshot(FileCollection sourceFiles) {
+        Clock clock = new Clock();
         final Map<String, FileSnapshot> snapshots = new HashMap<String, FileSnapshot>();
         final Set<File> theFiles = sourceFiles.getAsFileTree().getFiles();
+        if (clock.getTimeInMs() > 1000) {
+            LOG.info("Collected {} files for snapshot generation in {}. Calculating snapshots...", theFiles.size(), clock.getTime());
+        }
         cacheAccess.useCache("Create file snapshot", new Runnable() {
             public void run() {
                 for (File file : theFiles) {
@@ -54,6 +63,9 @@ public class DefaultFileSnapshotter implements FileSnapshotter {
                 }
             }
         });
+        if (clock.getTimeInMs() > 1000) {
+            LOG.info("Creating file snapshot for {} took {}.", sourceFiles, clock.getTime());
+        }
         return new FileCollectionSnapshotImpl(snapshots);
     }
 

@@ -17,10 +17,13 @@
 package org.gradle.api.internal.changedetection.state;
 
 import org.gradle.api.file.FileCollection;
+import org.gradle.api.logging.Logger;
+import org.gradle.api.logging.Logging;
 import org.gradle.cache.PersistentIndexedCache;
 import org.gradle.internal.id.IdGenerator;
 import org.gradle.messaging.serialize.LongSerializer;
 import org.gradle.util.ChangeListener;
+import org.gradle.util.Clock;
 import org.gradle.util.DiffUtil;
 import org.gradle.util.NoOpChangeListener;
 
@@ -43,6 +46,7 @@ public class OutputFilesSnapshotter implements FileSnapshotter {
     private final IdGenerator<Long> idGenerator;
     private TaskArtifactStateCacheAccess cacheAccess;
     private final PersistentIndexedCache<String, Long> dirIdentiferCache;
+    private final static Logger LOG = Logging.getLogger(OutputFilesSnapshotter.class);
 
     public OutputFilesSnapshotter(FileSnapshotter snapshotter, IdGenerator<Long> idGenerator,
                                   TaskArtifactStateCacheAccess cacheAccess) {
@@ -57,8 +61,12 @@ public class OutputFilesSnapshotter implements FileSnapshotter {
     }
 
     public OutputFilesSnapshot snapshot(final FileCollection files) {
+        Clock clock = new Clock();
         final Map<String, Long> snapshotDirIds = new HashMap<String, Long>();
         final Set<File> theFiles = files.getFiles();
+        if (clock.getTimeInMs() > 1000) {
+            LOG.info("Collected {} files for snapshot generation in {}", theFiles.size(), clock.getTime());
+        }
         cacheAccess.useCache("create dir snapshots", new Runnable() {
             public void run() {
                 for (File file : theFiles) {
@@ -78,7 +86,14 @@ public class OutputFilesSnapshotter implements FileSnapshotter {
 
             }
         });
-        return new OutputFilesSnapshot(snapshotDirIds, snapshotter.snapshot(files));
+        if (clock.getTimeInMs() > 1000) {
+            LOG.info("Created dir snapshots in {}", clock.getTime());
+        }
+        OutputFilesSnapshot out = new OutputFilesSnapshot(snapshotDirIds, snapshotter.snapshot(files));
+        if (clock.getTimeInMs() > 1000) {
+            LOG.info("Created output snapshot in {}", clock.getTime());
+        }
+        return out;
     }
 
     static class OutputFilesSnapshot implements FileCollectionSnapshot {
