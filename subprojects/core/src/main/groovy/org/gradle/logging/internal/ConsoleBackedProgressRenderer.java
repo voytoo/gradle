@@ -17,12 +17,17 @@ package org.gradle.logging.internal;
 
 import org.gradle.util.GUtil;
 
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 
 public class ConsoleBackedProgressRenderer implements OutputEventListener {
     private final OutputEventListener listener;
     private final Console console;
+
+    private Map<Long, Operation> operationsByOwner = new HashMap<Long, Operation>();
     private final LinkedList<Operation> operations = new LinkedList<Operation>();
+
     private final StatusBarFormatter statusBarFormatter;
     private Label statusBar;
 
@@ -35,14 +40,21 @@ public class ConsoleBackedProgressRenderer implements OutputEventListener {
     public void onOutput(OutputEvent event) {
         if (event instanceof ProgressStartEvent) {
             ProgressStartEvent startEvent = (ProgressStartEvent) event;
-            operations.addLast(new Operation(startEvent.getShortDescription(), startEvent.getStatus()));
+            Operation o = new Operation(startEvent.getShortDescription(), startEvent.getStatus());
+            operationsByOwner.put(startEvent.getProgressLoggerId(), o);
+            operations.addLast(o);
             updateText();
         } else if (event instanceof ProgressCompleteEvent) {
+            operationsByOwner.remove(((ProgressCompleteEvent) event).getProgressLoggerId());
             operations.removeLast();
             updateText();
         } else if (event instanceof ProgressEvent) {
             ProgressEvent progressEvent = (ProgressEvent) event;
-            operations.getLast().status = progressEvent.getStatus();
+            Operation o = operationsByOwner.get(progressEvent.getProgressLoggerId());
+            if (o == null) {
+                throw new IllegalStateException("Unexpected progress event received: " + event + ". The operation was not started or has already completed.");
+            }
+            o.status = progressEvent.getStatus();
             updateText();
         }
         listener.onOutput(event);

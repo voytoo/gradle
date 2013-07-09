@@ -17,14 +17,16 @@ package org.gradle.logging.internal;
 
 import org.gradle.api.logging.LogLevel;
 
-public class ProgressStartEvent extends CategorisedOutputEvent {
+public class ProgressStartEvent extends CategorisedOutputEvent implements ProgressLoggerEvent {
+    private long progressLoggerId;
     private final String description;
     private final String shortDescription;
     private final String loggingHeader;
     private final String status;
 
-    public ProgressStartEvent(long timestamp, String category, String description, String shortDescription, String loggingHeader, String status) {
+    public ProgressStartEvent(long progressLoggerId, long timestamp, String category, String description, String shortDescription, String loggingHeader, String status) {
         super(timestamp, category, LogLevel.LIFECYCLE);
+        this.progressLoggerId = progressLoggerId;
         this.description = description;
         this.shortDescription = shortDescription;
         this.loggingHeader = loggingHeader;
@@ -45,6 +47,10 @@ public class ProgressStartEvent extends CategorisedOutputEvent {
 
     public String getStatus() {
         return status;
+    }
+
+    public long getProgressLoggerId() {
+        return progressLoggerId;
     }
 
     @Override
