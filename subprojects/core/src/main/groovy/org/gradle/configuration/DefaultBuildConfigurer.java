@@ -23,6 +23,7 @@ import org.gradle.util.SingleMessageLogger;
 
 public class DefaultBuildConfigurer implements BuildConfigurer {
     public void configure(GradleInternal gradle) {
+        System.out.println("***** Hacked version");
         maybeInformAboutIncubatingMode(gradle.getStartParameter());
         if (gradle.getStartParameter().isConfigureOnDemand()) {
             gradle.getRootProject().evaluate();
