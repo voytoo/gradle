@@ -18,6 +18,7 @@ package org.gradle.api.internal.artifacts.ivyservice;
 import org.gradle.api.artifacts.*;
 import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.ArtifactResolveException;
 import org.gradle.api.specs.Spec;
+import org.gradle.api.specs.Specs;
 import org.gradle.internal.Factory;
 import org.gradle.internal.graph.CachingDirectedGraphWalker;
 import org.gradle.internal.graph.DirectedGraphWithEdgeValues;
@@ -151,6 +152,10 @@ public class DefaultLenientConfiguration implements ResolvedConfigurationBuilder
      * @param dependencySpec dependency spec
      */
     public Set<ResolvedArtifact> getAllArtifacts(Spec<? super Dependency> dependencySpec) {
+        if (dependencySpec == Specs.SATISFIES_ALL) {
+            return artifacts;
+        }
+        throw new UnsupportedOperationException("We don't support getting artifact for specific spec");
 //        Set<ResolvedDependency> firstLevelModuleDependencies = getFirstLevelModuleDependencies(dependencySpec);
 //
 //        Set<ResolvedArtifact> artifacts = new LinkedHashSet<ResolvedArtifact>();
@@ -161,7 +166,7 @@ public class DefaultLenientConfiguration implements ResolvedConfigurationBuilder
 //        }
 //
 //        artifacts.addAll(walker.findValues());
-        return artifacts;
+//        return artifacts;
     }
 
     public Configuration getConfiguration() {
