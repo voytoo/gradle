@@ -68,7 +68,7 @@ public class DefaultConfiguration extends AbstractFileCollection implements Conf
     private final Object lock = new Object();
     private State state = State.UNRESOLVED;
     private ResolverResults cachedResolverResults;
-    private final ResolutionStrategyInternal resolutionStrategy;
+    private ResolutionStrategyInternal resolutionStrategy;
 
     public DefaultConfiguration(String path, String name, ConfigurationsProvider configurationsProvider,
                                 ConfigurationResolver resolver, ListenerManager listenerManager,
@@ -244,6 +244,7 @@ public class DefaultConfiguration extends AbstractFileCollection implements Conf
                     state = State.RESOLVED;
                 }
                 broadcast.afterResolve(incoming);
+                resolutionStrategy = null;
             }
         }
     }
