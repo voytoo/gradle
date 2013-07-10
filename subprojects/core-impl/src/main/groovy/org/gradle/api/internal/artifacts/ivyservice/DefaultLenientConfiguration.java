@@ -27,10 +27,11 @@ import java.io.File;
 import java.util.*;
 
 public class DefaultLenientConfiguration implements ResolvedConfigurationBuilder, LenientConfiguration {
-    private final ResolvedDependency root;
+    private final ResolvedModuleVersion root;
+    //    private final ResolvedDependency root;
     private CacheLockingManager cacheLockingManager;
     private final Configuration configuration;
-    private final Map<ModuleDependency, ResolvedDependency> firstLevelDependencies = new LinkedHashMap<ModuleDependency, ResolvedDependency>();
+//    private final Map<ModuleDependency, ResolvedDependency> firstLevelDependencies = new LinkedHashMap<ModuleDependency, ResolvedDependency>();
     private final Set<ResolvedArtifact> artifacts = new LinkedHashSet<ResolvedArtifact>();
     private final Set<UnresolvedDependency> unresolvedDependencies = new LinkedHashSet<UnresolvedDependency>();
     private final CachingDirectedGraphWalker<ResolvedDependency, ResolvedArtifact> walker
@@ -38,7 +39,7 @@ public class DefaultLenientConfiguration implements ResolvedConfigurationBuilder
 
     public DefaultLenientConfiguration(Configuration configuration, ResolvedDependency root, CacheLockingManager cacheLockingManager) {
         this.configuration = configuration;
-        this.root = root;
+        this.root = root.getModule();
         this.cacheLockingManager = cacheLockingManager;
     }
 
@@ -64,12 +65,12 @@ public class DefaultLenientConfiguration implements ResolvedConfigurationBuilder
         return artifacts;
     }
 
-    public ResolvedDependency getRoot() {
+    public ResolvedModuleVersion getRoot() {
         return root;
     }
 
     public void addFirstLevelDependency(ModuleDependency moduleDependency, ResolvedDependency refersTo) {
-        firstLevelDependencies.put(moduleDependency, refersTo);
+//        firstLevelDependencies.put(moduleDependency, refersTo);
     }
 
     public void addArtifact(ResolvedArtifact artifact) {
@@ -81,17 +82,19 @@ public class DefaultLenientConfiguration implements ResolvedConfigurationBuilder
     }
 
     public Set<ResolvedDependency> getFirstLevelModuleDependencies() {
-        return root.getChildren();
+        throw new UnsupportedOperationException("Forget it");
+//        return root.getChildren();
     }
 
     public Set<ResolvedDependency> getFirstLevelModuleDependencies(Spec<? super Dependency> dependencySpec) {
-        Set<ResolvedDependency> matches = new LinkedHashSet<ResolvedDependency>();
-        for (Map.Entry<ModuleDependency, ResolvedDependency> entry : firstLevelDependencies.entrySet()) {
-            if (dependencySpec.isSatisfiedBy(entry.getKey())) {
-                matches.add(entry.getValue());
-            }
-        }
-        return matches;
+        throw new UnsupportedOperationException("Forget it");
+//        Set<ResolvedDependency> matches = new LinkedHashSet<ResolvedDependency>();
+//        for (Map.Entry<ModuleDependency, ResolvedDependency> entry : firstLevelDependencies.entrySet()) {
+//            if (dependencySpec.isSatisfiedBy(entry.getKey())) {
+//                matches.add(entry.getValue());
+//            }
+//        }
+//        return matches;
     }
 
     public Set<File> getFiles(Spec<? super Dependency> dependencySpec) {
@@ -148,16 +151,16 @@ public class DefaultLenientConfiguration implements ResolvedConfigurationBuilder
      * @param dependencySpec dependency spec
      */
     public Set<ResolvedArtifact> getAllArtifacts(Spec<? super Dependency> dependencySpec) {
-        Set<ResolvedDependency> firstLevelModuleDependencies = getFirstLevelModuleDependencies(dependencySpec);
-
-        Set<ResolvedArtifact> artifacts = new LinkedHashSet<ResolvedArtifact>();
-
-        for (ResolvedDependency resolvedDependency : firstLevelModuleDependencies) {
-            artifacts.addAll(resolvedDependency.getParentArtifacts(root));
-            walker.add(resolvedDependency);
-        }
-
-        artifacts.addAll(walker.findValues());
+//        Set<ResolvedDependency> firstLevelModuleDependencies = getFirstLevelModuleDependencies(dependencySpec);
+//
+//        Set<ResolvedArtifact> artifacts = new LinkedHashSet<ResolvedArtifact>();
+//
+//        for (ResolvedDependency resolvedDependency : firstLevelModuleDependencies) {
+//            artifacts.addAll(resolvedDependency.getParentArtifacts(root));
+//            walker.add(resolvedDependency);
+//        }
+//
+//        artifacts.addAll(walker.findValues());
         return artifacts;
     }
 

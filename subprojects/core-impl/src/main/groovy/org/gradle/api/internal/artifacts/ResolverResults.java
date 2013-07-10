@@ -26,7 +26,7 @@ import org.gradle.api.artifacts.result.ResolutionResult;
 public class ResolverResults {
 
     private final ResolvedConfiguration resolvedConfiguration;
-    private final ResolutionResult resolutionResult;
+//    private final ResolutionResult resolutionResult;
     private final ResolveException fatalFailure;
 
     public ResolverResults(ResolvedConfiguration resolvedConfiguration, ResolveException fatalFailure) {
@@ -39,7 +39,7 @@ public class ResolverResults {
 
     private ResolverResults(ResolvedConfiguration resolvedConfiguration, ResolutionResult resolutionResult, ResolveException fatalFailure) {
         this.resolvedConfiguration = resolvedConfiguration;
-        this.resolutionResult = resolutionResult;
+//        this.resolutionResult = resolutionResult;
         this.fatalFailure = fatalFailure;
     }
 
@@ -53,10 +53,11 @@ public class ResolverResults {
         if (fatalFailure != null) {
             throw fatalFailure;
         }
-        return resolutionResult;
+        throw new UnsupportedOperationException("Forget it, we're not giving away the resolution result.");
+//        return resolutionResult;
     }
 
     public ResolverResults withResolvedConfiguration(ResolvedConfiguration resolvedConfiguration) {
-        return new ResolverResults(resolvedConfiguration, resolutionResult);
+        return new ResolverResults(resolvedConfiguration, (ResolutionResult) null);
     }
 }

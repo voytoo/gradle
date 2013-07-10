@@ -22,6 +22,7 @@ import org.gradle.api.artifacts.ModuleVersionIdentifier;
 import org.gradle.api.artifacts.ResolvedArtifact;
 import org.gradle.api.artifacts.ResolvedDependency;
 import org.gradle.api.artifacts.ResolvedModuleVersion;
+import org.gradle.api.internal.artifacts.ivyservice.dynamicversions.DefaultResolvedModuleVersion;
 
 import java.util.*;
 
@@ -69,11 +70,7 @@ public class DefaultResolvedDependency implements ResolvedDependency {
     }
 
     public ResolvedModuleVersion getModule() {
-        return new ResolvedModuleVersion() {
-            public ModuleVersionIdentifier getId() {
-                return id.getId();
-            }
-        };
+        return new DefaultResolvedModuleVersion(id.getId());
     }
 
     public Set<ResolvedDependency> getChildren() {

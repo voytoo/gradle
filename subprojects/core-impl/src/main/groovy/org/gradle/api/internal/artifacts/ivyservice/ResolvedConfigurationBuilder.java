@@ -15,10 +15,7 @@
  */
 package org.gradle.api.internal.artifacts.ivyservice;
 
-import org.gradle.api.artifacts.ModuleDependency;
-import org.gradle.api.artifacts.ResolvedArtifact;
-import org.gradle.api.artifacts.ResolvedDependency;
-import org.gradle.api.artifacts.UnresolvedDependency;
+import org.gradle.api.artifacts.*;
 
 public interface ResolvedConfigurationBuilder {
     void addArtifact(ResolvedArtifact artifact);
@@ -27,5 +24,5 @@ public interface ResolvedConfigurationBuilder {
 
     void addUnresolvedDependency(UnresolvedDependency unresolvedDependency);
 
-    ResolvedDependency getRoot();
+    ResolvedModuleVersion getRoot();
 }
