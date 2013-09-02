@@ -135,7 +135,7 @@ public class TransientResultsStore {
                         id = resolvedConfigurationIdentifierSerializer.read(decoder);
                         results.root = results.allDependencies.get(id);
                         //root should be the last
-                        LOG.debug("Loaded resolved configuration results ({}) from {}", clock.getTime(), binaryStore);
+                        LOG.info("Loaded resolved configuration results ({}) from {}", clock.getTime(), binaryStore);
                         return results;
                     case FIRST_LVL:
                         id = resolvedConfigurationIdentifierSerializer.read(decoder);

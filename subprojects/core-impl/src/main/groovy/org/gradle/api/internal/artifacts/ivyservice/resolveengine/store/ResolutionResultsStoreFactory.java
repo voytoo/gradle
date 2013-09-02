@@ -127,6 +127,7 @@ public class ResolutionResultsStoreFactory implements Closeable {
         public BinaryData done() {
             try {
                 outputStream.flush();
+                LOG.info("Flushing {} at offset {}", file, offset);
                 return new SimpleBinaryData(file, offset, diagnose());
             } catch (IOException e) {
                 throw new RuntimeException("Problems flushing data to " + diagnose(), e);
@@ -159,6 +160,7 @@ public class ResolutionResultsStoreFactory implements Closeable {
             public <T> T read(ReadAction<T> readAction) {
                 try {
                     if (input == null) {
+                        LOG.info("Started reading {} from offset {}", inputFile, offset);
                         input = new DataInputStream(new BufferedInputStream(new FileInputStream(inputFile)));
                         GStreamUtil.skipBytes(offset, input);
                     }
