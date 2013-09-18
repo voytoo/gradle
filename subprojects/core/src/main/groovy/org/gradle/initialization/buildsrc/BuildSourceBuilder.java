@@ -38,6 +38,7 @@ public class BuildSourceBuilder {
     private final GradleLauncherFactory gradleLauncherFactory;
     private final ClassLoaderRegistry classLoaderRegistry;
     private final CacheRepository cacheRepository;
+    private static URLClassLoader urlClassLoader;
 
     public BuildSourceBuilder(GradleLauncherFactory gradleLauncherFactory, ClassLoaderRegistry classLoaderRegistry, CacheRepository cacheRepository) {
         this.gradleLauncherFactory = gradleLauncherFactory;
@@ -46,8 +47,12 @@ public class BuildSourceBuilder {
     }
 
     public ClassLoader buildAndCreateClassLoader(StartParameter startParameter) {
+        if (urlClassLoader != null) {
+            return urlClassLoader;
+        }
         ClassPath classpath = createBuildSourceClasspath(startParameter);
-        return new URLClassLoader(classpath.getAsURLArray(), classLoaderRegistry.getGradleApiClassLoader());
+        urlClassLoader = new URLClassLoader(classpath.getAsURLArray(), classLoaderRegistry.getGradleApiClassLoader());
+        return urlClassLoader;
     }
 
     ClassPath createBuildSourceClasspath(StartParameter startParameter) {

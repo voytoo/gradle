@@ -49,6 +49,10 @@ public class MultiParentClassLoader extends ClassLoader implements ClassLoaderHi
         parents.add(parent);
     }
 
+    public boolean hasParent(ClassLoader parent) {
+        return parents.contains(parent);
+    }
+
     public void visit(ClassLoaderVisitor visitor) {
         visitor.visitSpec(new Spec());
         for (ClassLoader parent : parents) {

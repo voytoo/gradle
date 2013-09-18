@@ -22,7 +22,7 @@ import org.gradle.groovy.scripts.Transformer;
 import java.util.*;
 
 public class CachingScriptClassCompiler implements ScriptClassCompiler {
-    private final Map<Collection<Object>, Class<?>> cachedClasses = new HashMap<Collection<Object>, Class<?>>();
+    private final static Map<Collection<Object>, Class<?>> cachedClasses = new HashMap<Collection<Object>, Class<?>>();
     private final ScriptClassCompiler scriptClassCompiler;
 
     public CachingScriptClassCompiler(ScriptClassCompiler scriptClassCompiler) {

@@ -21,16 +21,26 @@ import org.gradle.internal.classloader.CachingClassLoader;
 import org.gradle.internal.classloader.MultiParentClassLoader;
 
 public class DefaultBuildClassLoaderRegistry implements BuildClassLoaderRegistry {
-    private final MultiParentClassLoader rootClassLoader;
-    private final CachingClassLoader scriptClassLoader;
+    private static MultiParentClassLoader rootClassLoader;
+    private static CachingClassLoader scriptClassLoader;
+    private final static Object LOCK = new Object();
+    private static boolean PARENT_ADDED;
 
     public DefaultBuildClassLoaderRegistry(ClassLoaderRegistry registry) {
-        rootClassLoader = new MultiParentClassLoader(registry.getGradleApiClassLoader());
-        scriptClassLoader = new CachingClassLoader(rootClassLoader);
+        synchronized (LOCK) {
+            if (rootClassLoader == null) {
+                rootClassLoader = new MultiParentClassLoader(registry.getGradleApiClassLoader());
+                scriptClassLoader = new CachingClassLoader(rootClassLoader);
+            }
+        }
     }
 
     public void addRootClassLoader(ClassLoader classLoader) {
-        rootClassLoader.addParent(classLoader);
+        synchronized (LOCK) {
+            if (!rootClassLoader.hasParent(classLoader)){
+                rootClassLoader.addParent(classLoader);
+            }
+        }
     }
 
     public ClassLoader getScriptClassLoader() {

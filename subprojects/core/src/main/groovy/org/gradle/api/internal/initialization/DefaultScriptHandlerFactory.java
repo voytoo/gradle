@@ -38,7 +38,8 @@ import java.util.Map;
 public class DefaultScriptHandlerFactory implements ScriptHandlerFactory {
     private final DependencyManagementServices dependencyManagementServices;
     private final DependencyMetaDataProvider dependencyMetaDataProvider;
-    private final Map<Collection<Object>, MutableURLClassLoader> classLoaderCache = new HashMap<Collection<Object>, MutableURLClassLoader>();
+    private final static Map<Collection<Object>, MutableURLClassLoader> classLoaderCache = new HashMap<Collection<Object>, MutableURLClassLoader>();
+    private final static Object LOCK = new Object();
     private final FileResolver fileResolver;
     private final ProjectFinder projectFinder = new ProjectFinder() {
         public ProjectInternal getProject(String path) {
@@ -64,11 +65,14 @@ public class DefaultScriptHandlerFactory implements ScriptHandlerFactory {
         ConfigurationContainer configurationContainer = services.getConfigurationContainer();
         DependencyHandler dependencyHandler = services.getDependencyHandler();
         Collection<Object> key = Arrays.asList(scriptSource.getClassName(), parentClassLoader);
-        MutableURLClassLoader classLoader = classLoaderCache.get(key);
-        if (classLoader == null) {
-            classLoader = new MutableURLClassLoader(parentClassLoader);
-            classLoaderCache.put(key, classLoader);
-            return new DefaultScriptHandler(scriptSource, repositoryHandler, dependencyHandler, configurationContainer, classLoader);
+        MutableURLClassLoader classLoader;
+        synchronized (LOCK) {
+            classLoader = classLoaderCache.get(key);
+            if (classLoader == null) {
+                classLoader = new MutableURLClassLoader(parentClassLoader);
+                classLoaderCache.put(key, classLoader);
+                return new DefaultScriptHandler(scriptSource, repositoryHandler, dependencyHandler, configurationContainer, classLoader);
+            }
         }
 
         return new NoClassLoaderUpdateScriptHandler(classLoader, repositoryHandler, dependencyHandler, scriptSource, configurationContainer);
