@@ -17,13 +17,11 @@ class CachingClassloadersIntegrationTest extends AbstractIntegrationSpec {
             }
 
             task setMessage << {
-                JavaPlugin.MESSAGE = "hey!"
                 Foo.message = 'hey!'
             }
             task assertMessage << {
                 println "Class: " + Foo.class + ", loader: " + Foo.class.classLoader
                 println "Class: " + JavaPlugin.class + ", loader: " + JavaPlugin.class.classLoader
-                assert JavaPlugin.MESSAGE == 'hey!'
                 assert Foo.message == 'hey!'
             }
         """
