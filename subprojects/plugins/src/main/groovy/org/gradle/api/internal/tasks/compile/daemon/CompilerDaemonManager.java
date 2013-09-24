@@ -40,6 +40,7 @@ import java.util.List;
 public class CompilerDaemonManager implements CompilerDaemonFactory {
     private static final Logger LOGGER = Logging.getLogger(CompilerDaemonManager.class);
     private static final CompilerDaemonManager INSTANCE = new CompilerDaemonManager();
+    private final Object lock = new Object();
 
     private final List<CompilerDaemonClient> clients = new ArrayList<CompilerDaemonClient>();
 
@@ -48,22 +49,26 @@ public class CompilerDaemonManager implements CompilerDaemonFactory {
     }
 
     public synchronized CompilerDaemon getDaemon(ProjectInternal project, DaemonForkOptions forkOptions) {
-        if (clients.isEmpty()) {
-            registerStopOnBuildFinished(project);
-        }
+        synchronized (lock) {
+            if (clients.isEmpty()) {
+                registerStopOnBuildFinished(project);
+            }
 
-        for (CompilerDaemonClient client: clients) {
-            if (client.isCompatibleWith(forkOptions) && client.isIdle()) {
-                return client;
+            for (CompilerDaemonClient client: clients) {
+                if (client.isCompatibleWith(forkOptions) && client.isIdle()) {
+                    return client;
+                }
             }
         }
 
         CompilerDaemonClient client = startDaemon(project, forkOptions);
-        clients.add(client);
+        synchronized (lock) {
+            clients.add(client);
+        }
         return client;
     }
 
-    public synchronized void stop() {
+    public void stop() {
         LOGGER.info("Stopping {} Gradle compiler daemon(s).", clients.size());
         CompositeStoppable.stoppable(clients).stop();
         LOGGER.info("Stopped {} Gradle compiler daemon(s).", clients.size());
