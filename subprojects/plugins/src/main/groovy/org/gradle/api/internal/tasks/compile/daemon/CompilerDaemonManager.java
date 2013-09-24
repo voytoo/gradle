@@ -27,6 +27,7 @@ import org.gradle.internal.jvm.Jvm;
 import org.gradle.process.internal.JavaExecHandleBuilder;
 import org.gradle.process.internal.WorkerProcess;
 import org.gradle.process.internal.WorkerProcessBuilder;
+import org.gradle.util.Clock;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -39,7 +40,7 @@ import java.util.List;
 public class CompilerDaemonManager implements CompilerDaemonFactory {
     private static final Logger LOGGER = Logging.getLogger(CompilerDaemonManager.class);
     private static final CompilerDaemonManager INSTANCE = new CompilerDaemonManager();
-    
+
     private final List<CompilerDaemonClient> clients = new ArrayList<CompilerDaemonClient>();
 
     public static CompilerDaemonManager getInstance() {
@@ -52,7 +53,7 @@ public class CompilerDaemonManager implements CompilerDaemonFactory {
         }
 
         for (CompilerDaemonClient client: clients) {
-            if (client.isCompatibleWith(forkOptions)) {
+            if (client.isCompatibleWith(forkOptions) && client.isIdle()) {
                 return client;
             }
         }
@@ -79,10 +80,11 @@ public class CompilerDaemonManager implements CompilerDaemonFactory {
     }
 
     private CompilerDaemonClient startDaemon(ProjectInternal project, DaemonForkOptions forkOptions) {
-        LOGGER.info("Starting Gradle compiler daemon with fork options {}.", forkOptions);
+        LOGGER.debug("Starting Gradle compiler daemon with fork options {}.", forkOptions);
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug(forkOptions.toString());
         }
+        Clock clock = new Clock();
 
         WorkerProcessBuilder builder = project.getServices().getFactory(WorkerProcessBuilder.class).create();
         builder.setLogLevel(project.getGradle().getStartParameter().getLogLevel()); // NOTE: might make sense to respect per-compile-task log level
@@ -103,7 +105,7 @@ public class CompilerDaemonManager implements CompilerDaemonFactory {
         CompilerDaemonClient client = new CompilerDaemonClient(forkOptions, process, server);
         process.getConnection().addIncoming(CompilerDaemonClientProtocol.class, client);
 
-        LOGGER.info("Started Gradle compiler daemon with fork options {}.", forkOptions);
+        LOGGER.info("Started Gradle compiler daemon ({}) with fork options {}.", clock.getTime(), forkOptions);
 
         return client;
     }

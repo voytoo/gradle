@@ -35,6 +35,7 @@ public class CompilerDaemonClient implements CompilerDaemon, CompilerDaemonClien
     private final CompilerDaemonServerProtocol server;
     private final BlockingQueue<CompileResult> compileResults = new SynchronousQueue<CompileResult>();
     private final Lock lock = new ReentrantLock(true);
+    private boolean idle = true;
 
     public CompilerDaemonClient(DaemonForkOptions forkOptions, WorkerProcess workerProcess, CompilerDaemonServerProtocol server) {
         this.forkOptions = forkOptions;
@@ -45,6 +46,7 @@ public class CompilerDaemonClient implements CompilerDaemon, CompilerDaemonClien
     public <T extends CompileSpec> CompileResult execute(Compiler<T> compiler, T spec) {
         // currently we just allow a single compilation thread at a time (per compiler daemon)
         // one problem to solve when allowing multiple threads is how to deal with memory requirements specified by compile tasks
+        idle = false;
         lock.lock();
         try {
             server.execute(compiler, spec);
@@ -52,6 +54,7 @@ public class CompilerDaemonClient implements CompilerDaemon, CompilerDaemonClien
         } catch (InterruptedException e) {
             throw UncheckedException.throwAsUncheckedException(e);
         } finally {
+            idle = true;
             lock.unlock();
         }
     }
@@ -76,5 +79,9 @@ public class CompilerDaemonClient implements CompilerDaemon, CompilerDaemonClien
         } catch (InterruptedException e) {
             throw UncheckedException.throwAsUncheckedException(e);
         }
+    }
+
+    public synchronized boolean isIdle() {
+        return idle;
     }
 }
