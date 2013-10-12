@@ -434,28 +434,104 @@ class DefaultFileLockManagerTest extends Specification {
         thrown InsufficientLockModeException
     }
 
-    def "the lock knows if it has a new owner process"() {
+    def "lock is up to date when same process writes to cache"() {
         when:
         def lock = createLock(Exclusive)
 
         then:
-        lock.hasNewOwner
+        !lock.outOfDate
 
         when:
         lock.writeFile({})
 
         then:
-        lock.hasNewOwner
-
-        when:
-        lock.close()
-        lock = createLock(Exclusive)
-
-        then:
-        !lock.hasNewOwner
+        !lock.outOfDate
 
         cleanup:
         lock?.close()
+    }
+
+    def "lock is up to date when same process reads from cache"() {
+        when:
+        def lock = createLock(Exclusive)
+
+        then:
+        !lock.outOfDate
+
+        when:
+        lock.readFile({})
+
+        then:
+        !lock.outOfDate
+
+        cleanup:
+        lock?.close()
+    }
+
+    def "lock is up to date different processes write to the cache sequentially"() {
+        def process1 = new DefaultFileLockManager(metaDataProvider, 5000, new NoOpFileLockContentionHandler(), generator)
+        def process2 = new DefaultFileLockManager(metaDataProvider, 5000, new NoOpFileLockContentionHandler(), generator)
+
+        when:
+        def lock = createLock(Exclusive, testFile, process1)
+        lock.writeFile({})
+        lock.close()
+
+        def lock2 = createLock(Exclusive, testFile, process2)
+        lock2.writeFile({})
+        lock2.close()
+
+        def lock3 = createLock(Exclusive, testFile, process2)
+
+        then:
+        !lock3.outOfDate
+
+        cleanup:
+        lock3?.close()
+    }
+
+    def "lock is out of date if other process wrote to it"() {
+        def process1 = new DefaultFileLockManager(metaDataProvider, 5000, new NoOpFileLockContentionHandler(), generator)
+        def process2 = new DefaultFileLockManager(metaDataProvider, 5000, new NoOpFileLockContentionHandler(), generator)
+
+        when:
+        def lock = createLock(Exclusive, testFile, process1)
+        lock.writeFile({})
+        lock.close()
+
+        def lock2 = createLock(Exclusive, testFile, process2)
+        lock2.writeFile({})
+        lock2.close()
+
+        def lock3 = createLock(Exclusive, testFile, process1)
+
+        then:
+        lock3.outOfDate
+
+        cleanup:
+        lock3?.close()
+    }
+
+    def "lock is up to date when other process only read from cache"() {
+        def process1 = new DefaultFileLockManager(metaDataProvider, 5000, new NoOpFileLockContentionHandler(), generator)
+        def process2 = new DefaultFileLockManager(metaDataProvider, 5000, new NoOpFileLockContentionHandler(), generator)
+
+        when:
+        def lock = createLock(Exclusive, testFile, process1)
+        lock.writeFile({})
+        lock.close()
+
+        def lock2 = createLock(Exclusive, testFile, process2)
+        lock2.readFile({})
+        lock2.close()
+
+        def lock3 = createLock(Exclusive, testFile, process1)
+
+        then:
+        !lock3.outOfDate
+
+        cleanup:
+        lock3?.close()
     }
 
     private void isEmptyLockFile(TestFile lockFile) {
@@ -492,8 +568,8 @@ class DefaultFileLockManagerTest extends Specification {
         createLock(Shared, testFile)
     }
 
-    private FileLock createLock(LockMode lockMode = Shared, File file = testFile) {
-        manager.lock(file, lockMode, "foo", "operation")
+    private FileLock createLock(LockMode lockMode = Shared, File file = testFile, DefaultFileLockManager mgr = manager) {
+        mgr.lock(file, lockMode, "foo", "operation")
     }
 
     private File unlockUncleanly(LockMode lockMode = Shared, File file = testFile) {

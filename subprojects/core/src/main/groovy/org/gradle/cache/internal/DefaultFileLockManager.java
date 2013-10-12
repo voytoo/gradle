@@ -22,7 +22,6 @@ import org.gradle.internal.CompositeStoppable;
 import org.gradle.internal.Factory;
 import org.gradle.internal.Stoppable;
 import org.gradle.internal.id.IdGenerator;
-import org.gradle.internal.id.NoZeroIntegerIdGenerator;
 import org.gradle.internal.id.RandomLongIdGenerator;
 import org.gradle.util.GFileUtils;
 
@@ -30,7 +29,9 @@ import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 import static org.gradle.internal.UncheckedException.throwAsUncheckedException;
@@ -53,17 +54,17 @@ public class DefaultFileLockManager implements FileLockManager {
     private static final int INFORMATION_REGION_POS = STATE_REGION_POS + STATE_REGION_SIZE;
     public static final int INFORMATION_REGION_SIZE = 2052;
     public static final int INFORMATION_REGION_DESCR_CHUNK_LIMIT = 340;
-    private static final int UNKNOWN_PREVIOUS_OWNER = 0;
+    private static final int UNKNOWN_SEQUENCE_NUMBER = 0;
 
     public static final short PROTOCOL_VERSION = STATE_REGION_PROTOCOL + INFORMATION_REGION_PROTOCOL;
 
     private final Set<File> lockedFiles = new CopyOnWriteArraySet<File>();
+    private final Map<File, Integer> sequenceNumbers = new ConcurrentHashMap<File, Integer>();
     private final ProcessMetaDataProvider metaDataProvider;
     private final int lockTimeoutMs;
     private final IdGenerator<Long> generator;
     private FileLockContentionHandler fileLockContentionHandler;
     private final long shortTimeoutMs = 10000;
-    private final int ownerId = new NoZeroIntegerIdGenerator().generateId();
 
     public DefaultFileLockManager(ProcessMetaDataProvider metaDataProvider, FileLockContentionHandler fileLockContentionHandler) {
         this(metaDataProvider, DEFAULT_LOCK_TIMEOUT, fileLockContentionHandler);
@@ -118,12 +119,13 @@ public class DefaultFileLockManager implements FileLockManager {
         private final LockMode mode;
         private final String displayName;
         private final String operationDisplayName;
-        private final boolean hasNewOwner;
+        private final boolean outOfDate;
         private java.nio.channels.FileLock lock;
         private RandomAccessFile lockFileAccess;
         private boolean integrityViolated;
         private int port;
         private final long lockId;
+        private int sequenceNumber;
 
         public DefaultFileLock(File target, LockMode mode, String displayName, String operationDisplayName, int port) throws Throwable {
             this.port = port;
@@ -147,9 +149,9 @@ public class DefaultFileLockManager implements FileLockManager {
             lockFileAccess = new RandomAccessFile(lockFile, "rw");
             try {
                 lock = lock(mode);
-                int previousOwnerId = getPreviousOwnerId();
-                hasNewOwner = previousOwnerId != ownerId;
-                integrityViolated = previousOwnerId == UNKNOWN_PREVIOUS_OWNER;
+                sequenceNumber = getSequenceNumber();
+                outOfDate = sequenceNumbers.containsKey(target) && sequenceNumber != sequenceNumbers.get(target);
+                integrityViolated = sequenceNumber == UNKNOWN_SEQUENCE_NUMBER;
             } catch (Throwable t) {
                 // Also releases any locks
                 lockFileAccess.close();
@@ -163,25 +165,21 @@ public class DefaultFileLockManager implements FileLockManager {
             return file.equals(lockFile);
         }
 
-        private int getPreviousOwnerId() {
+        private int getSequenceNumber() {
             assertOpen();
             try {
                 lockFileAccess.seek(STATE_REGION_POS + 1);
                 return lockFileAccess.readInt();
             } catch (EOFException e) {
                 // Process has crashed writing to lock file
-                return UNKNOWN_PREVIOUS_OWNER;
+                return UNKNOWN_SEQUENCE_NUMBER;
             } catch (Exception e) {
                 throw throwAsUncheckedException(e);
             }
         }
 
         public boolean getUnlockedCleanly() {
-            return getPreviousOwnerId() != UNKNOWN_PREVIOUS_OWNER;
-        }
-
-        public boolean getHasNewOwner() {
-            return hasNewOwner;
+            return getSequenceNumber() != UNKNOWN_SEQUENCE_NUMBER;
         }
 
         public <T> T readFile(Factory<? extends T> action) throws LockTimeoutException, FileIntegrityViolationException {
@@ -231,14 +229,14 @@ public class DefaultFileLockManager implements FileLockManager {
         private void markClean() throws IOException {
             lockFileAccess.seek(STATE_REGION_POS);
             lockFileAccess.writeByte(STATE_REGION_PROTOCOL);
-            lockFileAccess.writeInt(ownerId);
+            lockFileAccess.writeInt(++sequenceNumber);
             assert lockFileAccess.getFilePointer() == STATE_REGION_SIZE + STATE_REGION_POS;
         }
 
         private void markDirty() throws IOException {
             lockFileAccess.seek(STATE_REGION_POS);
             lockFileAccess.writeByte(STATE_REGION_PROTOCOL);
-            lockFileAccess.writeInt(UNKNOWN_PREVIOUS_OWNER);
+            lockFileAccess.writeInt(UNKNOWN_SEQUENCE_NUMBER);
             assert lockFileAccess.getFilePointer() == STATE_REGION_SIZE + STATE_REGION_POS;
         }
 
@@ -290,6 +288,7 @@ public class DefaultFileLockManager implements FileLockManager {
                     lock = null;
                     lockFileAccess = null;
                     lockedFiles.remove(target);
+                    sequenceNumbers.put(target, sequenceNumber);
                 }
             });
             stoppable.stop();
@@ -301,6 +300,10 @@ public class DefaultFileLockManager implements FileLockManager {
 
         public long getLockId() {
             return lockId;
+        }
+
+        public boolean isOutOfDate() {
+            return outOfDate;
         }
 
         private java.nio.channels.FileLock lock(FileLockManager.LockMode lockMode) throws Throwable {
@@ -330,7 +333,7 @@ public class DefaultFileLockManager implements FileLockManager {
                         // File did not exist before locking
                         lockFileAccess.seek(STATE_REGION_POS);
                         lockFileAccess.writeByte(STATE_REGION_PROTOCOL);
-                        lockFileAccess.writeInt(UNKNOWN_PREVIOUS_OWNER);
+                        lockFileAccess.writeInt(UNKNOWN_SEQUENCE_NUMBER);
                     }
                     // Acquire an exclusive lock on the information region and write our details there
                     java.nio.channels.FileLock informationRegionLock = lockInformationRegion(LockMode.Exclusive, System.currentTimeMillis() + shortTimeoutMs);
