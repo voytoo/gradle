@@ -16,6 +16,7 @@
 
 package org.gradle.logging.internal
 
+import org.gradle.logging.internal.progress.ProgressOperation
 import spock.lang.Specification
 import org.gradle.internal.nativeplatform.console.ConsoleMetaData
 
@@ -26,19 +27,19 @@ class DefaultStatusBarFormatterTest extends Specification {
 
     def "formats multiple operations"(){
         expect:
-        "> status1 > status2" == statusBarFormatter.format(Arrays.asList(new ConsoleBackedProgressRenderer.Operation("shortDescr1", "status1"), new ConsoleBackedProgressRenderer.Operation("shortDescr2", "status2")))
+        "> status1 > status2" == statusBarFormatter.format(Arrays.asList(new ProgressOperation("shortDescr1", "status1"), new ProgressOperation("shortDescr2", "status2")))
     }
 
     def "uses shortDescr if no status available"(){
         expect:
-        "> shortDescr1" == statusBarFormatter.format(Arrays.asList(new ConsoleBackedProgressRenderer.Operation("shortDescr1", null)))
-        "> shortDescr2" == statusBarFormatter.format(Arrays.asList(new ConsoleBackedProgressRenderer.Operation("shortDescr2", '')))
+        "> shortDescr1" == statusBarFormatter.format(Arrays.asList(new ProgressOperation("shortDescr1", null)))
+        "> shortDescr2" == statusBarFormatter.format(Arrays.asList(new ProgressOperation("shortDescr2", '')))
     }
 
     def "trims output to one less than the max console width"(){
         when:
         _ * consoleMetaData.getCols() >> 10
         then:
-        "> these a" == statusBarFormatter.format(Arrays.asList(new ConsoleBackedProgressRenderer.Operation("shortDescr1", "these are more than 10 characters")))
+        "> these a" == statusBarFormatter.format(Arrays.asList(new ProgressOperation("shortDescr1", "these are more than 10 characters")))
     }
 }

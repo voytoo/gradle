@@ -17,6 +17,7 @@
 package org.gradle.logging.internal;
 
 import org.gradle.internal.nativeplatform.console.ConsoleMetaData;
+import org.gradle.logging.internal.progress.ProgressOperation;
 
 import java.util.List;
 
@@ -27,9 +28,9 @@ public class DefaultStatusBarFormatter implements StatusBarFormatter {
         this.consoleMetaData = consoleMetaData;
     }
 
-    public String format(List<ConsoleBackedProgressRenderer.Operation> operations) {
+    public String format(List<ProgressOperation> operations) {
         StringBuilder builder = new StringBuilder();
-        for (ConsoleBackedProgressRenderer.Operation operation : operations) {
+        for (ProgressOperation operation : operations) {
             String message = operation.getMessage();
             if (message == null) {
                 continue;

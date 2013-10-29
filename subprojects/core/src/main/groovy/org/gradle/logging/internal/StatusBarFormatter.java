@@ -16,8 +16,10 @@
 
 package org.gradle.logging.internal;
 
+import org.gradle.logging.internal.progress.ProgressOperation;
+
 import java.util.List;
 
 public interface StatusBarFormatter {
-    String format(List<ConsoleBackedProgressRenderer.Operation> operations);
+    String format(List<ProgressOperation> operations);
 }

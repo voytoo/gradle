@@ -15,14 +15,12 @@
  */
 package org.gradle.logging.internal;
 
-import org.gradle.util.GUtil;
-
-import java.util.LinkedList;
+import org.gradle.logging.internal.progress.ProgressOperations;
 
 public class ConsoleBackedProgressRenderer implements OutputEventListener {
     private final OutputEventListener listener;
     private final Console console;
-    private final LinkedList<Operation> operations = new LinkedList<Operation>();
+    private final ProgressOperations operations = new ProgressOperations();
     private final StatusBarFormatter statusBarFormatter;
     private Label statusBar;
 
@@ -35,14 +33,14 @@ public class ConsoleBackedProgressRenderer implements OutputEventListener {
     public void onOutput(OutputEvent event) {
         if (event instanceof ProgressStartEvent) {
             ProgressStartEvent startEvent = (ProgressStartEvent) event;
-            operations.addLast(new Operation(startEvent.getShortDescription(), startEvent.getStatus()));
+            operations.start(startEvent);
             updateText();
         } else if (event instanceof ProgressCompleteEvent) {
-            operations.removeLast();
+            operations.complete((ProgressCompleteEvent) event);
             updateText();
         } else if (event instanceof ProgressEvent) {
             ProgressEvent progressEvent = (ProgressEvent) event;
-            operations.getLast().status = progressEvent.getStatus();
+            operations.progress(progressEvent);
             updateText();
         }
         listener.onOutput(event);
@@ -52,27 +50,7 @@ public class ConsoleBackedProgressRenderer implements OutputEventListener {
         if (statusBar == null) {
             statusBar = console.getStatusBar();
         }
-        statusBar.setText(statusBarFormatter.format(operations));
-    }
-
-    static class Operation {
-        private final String shortDescription;
-        private String status;
-
-        private Operation(String shortDescription, String status) {
-            this.shortDescription = shortDescription;
-            this.status = status;
-        }
-
-        String getMessage() {
-            if (GUtil.isTrue(status)) {
-                return status;
-            }
-            if (GUtil.isTrue(shortDescription)) {
-                return shortDescription;
-            }
-            return null;
-        }
+        statusBar.setText(statusBarFormatter.format(operations.getOperations()));
     }
 
 }
