@@ -22,21 +22,29 @@ import java.util.concurrent.atomic.AtomicInteger;
  * By Szczepan Faber on 7/5/13
  */
 public class BuildPhaseProgress {
-    private AtomicInteger remainingTasks;
-    private int totalTasks;
+    private AtomicInteger remainingItems;
+    private int totalItems;
     private String shortDescription;
 
-    public BuildPhaseProgress(String shortDescription, int totalTasks) {
-        this.totalTasks = totalTasks;
-        remainingTasks = new AtomicInteger(0);
+    public BuildPhaseProgress(String shortDescription, int totalItems) {
+        this.totalItems = totalItems;
+        remainingItems = new AtomicInteger(0);
         this.shortDescription = shortDescription;
     }
 
     public String progress() {
-        int currentTask = remainingTasks.incrementAndGet();
-        if (currentTask > totalTasks) {
+        String progress = getProgress(remainingItems.incrementAndGet());
+        return shortDescription + " " + progress;
+    }
+
+    public String update(String description) {
+        return shortDescription + " " + getProgress(remainingItems.get()) + " > " + description;
+    }
+
+    private String getProgress(int current) {
+        if (current > totalItems) {
             throw new IllegalStateException("All operations have already completed.");
         }
-        return shortDescription + " " + (int) (currentTask * 100.0 / totalTasks) + "%";
+        return (int) (current * 100.0 / totalItems) + "%";
     }
 }

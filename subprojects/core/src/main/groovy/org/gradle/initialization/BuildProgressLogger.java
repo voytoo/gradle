@@ -88,7 +88,9 @@ class BuildProgressLogger extends BuildAdapter implements TaskExecutionGraphList
         progressLogger.progress(buildProgress.progress());
     }
 
-    public void beforeEvaluate(Project project) {}
+    public void beforeEvaluate(Project project) {
+        progressLogger.progress(configurationProgress.update(project.getPath()));
+    }
 
     public void afterEvaluate(Project project, ProjectState state) {
         progressLogger.progress(configurationProgress.progress());
