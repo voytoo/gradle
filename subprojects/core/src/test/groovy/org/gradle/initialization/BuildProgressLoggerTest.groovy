@@ -18,18 +18,18 @@
 
 package org.gradle.initialization
 
-import spock.lang.Specification
-import org.gradle.logging.ProgressLoggerFactory
-import org.gradle.logging.ProgressLogger
-import org.gradle.api.invocation.Gradle
-import org.gradle.api.execution.TaskExecutionGraph
 import org.gradle.BuildResult
+import org.gradle.api.execution.TaskExecutionGraph
+import org.gradle.api.invocation.Gradle
+import org.gradle.logging.ProgressLogger
+import org.gradle.logging.ProgressLoggerFactory
+import spock.lang.Specification
 
 class BuildProgressLoggerTest extends Specification {
     private final ProgressLoggerFactory progressLoggerFactory = Mock()
     private final ProgressLogger progressLogger = Mock()
     private final Gradle gradle = Mock()
-    private final TaskExecutionGraph graph = Mock()
+    private final TaskExecutionGraph graph = Stub()
     private final BuildResult result = Mock()
     private final BuildProgressLogger logger = new BuildProgressLogger(progressLoggerFactory)
 
