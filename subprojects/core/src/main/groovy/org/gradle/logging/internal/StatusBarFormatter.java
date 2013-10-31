@@ -21,5 +21,5 @@ import org.gradle.logging.internal.progress.ProgressOperation;
 import java.util.List;
 
 public interface StatusBarFormatter {
-    String format(List<ProgressOperation> operations);
+    String format(List<ProgressOperation> operations, int parallelOperationsCount);
 }

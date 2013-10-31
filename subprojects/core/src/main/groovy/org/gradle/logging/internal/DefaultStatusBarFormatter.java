@@ -28,7 +28,7 @@ public class DefaultStatusBarFormatter implements StatusBarFormatter {
         this.consoleMetaData = consoleMetaData;
     }
 
-    public String format(List<ProgressOperation> operations) {
+    public String format(List<ProgressOperation> operations, int extraParallelTasks) {
         StringBuilder builder = new StringBuilder();
         for (ProgressOperation operation : operations) {
             String message = operation.getMessage();
@@ -40,6 +40,10 @@ public class DefaultStatusBarFormatter implements StatusBarFormatter {
             }
             builder.append("> ");
             builder.append(message);
+        }
+        if (extraParallelTasks > 0 && !operations.isEmpty()) {
+            builder.append(" | + ").append(extraParallelTasks)
+                    .append((extraParallelTasks == 1)? " parallel task" : " parallel tasks");
         }
         return trim(builder);
     }

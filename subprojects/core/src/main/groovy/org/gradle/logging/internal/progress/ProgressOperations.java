@@ -40,6 +40,9 @@ public class ProgressOperations {
     public void complete(ProgressCompleteEvent event) {
         LinkedList<ProgressOperation> op = operations.get(event.getThreadId());
         op.removeLast();
+        if (op.isEmpty()) {
+            operations.remove(event.getThreadId());
+        }
         recentlyChanged = op;
     }
 
@@ -51,5 +54,9 @@ public class ProgressOperations {
 
     public List<ProgressOperation> getOperations() {
         return recentlyChanged;
+    }
+
+    public int getParallelOperationsCount() {
+        return operations.size() - 2;
     }
 }

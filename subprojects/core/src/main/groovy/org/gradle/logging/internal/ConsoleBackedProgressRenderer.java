@@ -50,7 +50,7 @@ public class ConsoleBackedProgressRenderer implements OutputEventListener {
         if (statusBar == null) {
             statusBar = console.getStatusBar();
         }
-        statusBar.setText(statusBarFormatter.format(operations.getOperations()));
+        statusBar.setText(statusBarFormatter.format(operations.getOperations(), operations.getParallelOperationsCount()));
     }
 
 }
