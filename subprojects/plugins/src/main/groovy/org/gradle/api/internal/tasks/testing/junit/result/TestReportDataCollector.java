@@ -43,6 +43,19 @@ public class TestReportDataCollector implements TestListener, TestOutputListener
     }
 
     public void afterSuite(TestDescriptor suite, TestResult result) {
+        if (results.isEmpty()) {
+            //something went wrong, possibly initialising test execution,
+            // no tests were executed (no results), but the suite result indicates a failure
+            //let's synthesize the error so that it can show up in the test reports
+            TestMethodResult methodResult = new TestMethodResult(internalIdCounter++, "unable to execute tests");
+            for (Throwable throwable : result.getExceptions()) {
+                methodResult.addFailure(failureMessage(throwable), stackTrace(throwable), exceptionClassName(throwable));
+            }
+            methodResult.completed(result);
+            TestClassResult classResult = new TestClassResult(internalIdCounter++, suite.getName(), result.getStartTime());
+            classResult.add(methodResult);
+            results.put(suite.getName(), classResult);
+        }
     }
 
     public void beforeTest(TestDescriptor testDescriptor) {
