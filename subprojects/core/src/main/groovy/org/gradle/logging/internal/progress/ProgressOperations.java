@@ -20,26 +20,36 @@ import org.gradle.logging.internal.ProgressCompleteEvent;
 import org.gradle.logging.internal.ProgressEvent;
 import org.gradle.logging.internal.ProgressStartEvent;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 public class ProgressOperations {
 
-    private final LinkedList<ProgressOperation> operations = new LinkedList<ProgressOperation>();
+    private final Map<Long, LinkedList<ProgressOperation>> operations = new LinkedHashMap<Long, LinkedList<ProgressOperation>>();
+    private LinkedList<ProgressOperation> recentlyChanged;
 
     public void start(ProgressStartEvent event) {
-        operations.addLast(new ProgressOperation(event.getShortDescription(), event.getStatus()));
+        LinkedList ops = operations.get(event.getThreadId());
+        if (ops == null) {
+            ops = new LinkedList();
+            operations.put(event.getThreadId(), ops);
+        }
+        ops.addLast(new ProgressOperation(event.getShortDescription(), event.getStatus()));
+        recentlyChanged = ops;
     }
 
     public void complete(ProgressCompleteEvent event) {
-        operations.removeLast();
+        LinkedList<ProgressOperation> op = operations.get(event.getThreadId());
+        op.removeLast();
+        recentlyChanged = op;
     }
 
     public void progress(ProgressEvent event) {
-        operations.getLast().status = event.getStatus();
+        LinkedList<ProgressOperation> op = operations.get(event.getThreadId());
+        op.getLast().status = event.getStatus();
+        recentlyChanged = op;
     }
 
     public List<ProgressOperation> getOperations() {
-        return operations;
+        return recentlyChanged;
     }
 }

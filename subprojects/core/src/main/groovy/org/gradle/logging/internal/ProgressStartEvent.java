@@ -22,9 +22,11 @@ public class ProgressStartEvent extends CategorisedOutputEvent {
     private final String shortDescription;
     private final String loggingHeader;
     private final String status;
+    private long threadId;
 
-    public ProgressStartEvent(long timestamp, String category, String description, String shortDescription, String loggingHeader, String status) {
+    public ProgressStartEvent(long threadId, long timestamp, String category, String description, String shortDescription, String loggingHeader, String status) {
         super(timestamp, category, LogLevel.LIFECYCLE);
+        this.threadId = threadId;
         this.description = description;
         this.shortDescription = shortDescription;
         this.loggingHeader = loggingHeader;
@@ -50,5 +52,9 @@ public class ProgressStartEvent extends CategorisedOutputEvent {
     @Override
     public String toString() {
         return String.format("ProgressStart %s", description);
+    }
+
+    public long getThreadId() {
+        return threadId;
     }
 }
