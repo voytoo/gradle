@@ -16,6 +16,7 @@
 
 package org.gradle.api.internal.tasks.testing.junit.result;
 
+import org.gradle.api.internal.tasks.testing.TestSuiteInitialisationException;
 import org.gradle.api.tasks.testing.*;
 import org.gradle.messaging.remote.internal.PlaceholderException;
 
@@ -43,11 +44,10 @@ public class TestReportDataCollector implements TestListener, TestOutputListener
     }
 
     public void afterSuite(TestDescriptor suite, TestResult result) {
-        if (results.isEmpty()) {
-            //something went wrong, possibly initialising test execution,
-            // no tests were executed (no results), but the suite result indicates a failure
+        if (result.getResultType() == TestResult.ResultType.FAILURE && result.getException() instanceof TestSuiteInitialisationException) {
+            //something went wrong initialising test execution, most likely no test results were created
             //let's synthesize the error so that it can show up in the test reports
-            TestMethodResult methodResult = new TestMethodResult(internalIdCounter++, "unable to execute tests");
+            TestMethodResult methodResult = new TestMethodResult(internalIdCounter++, result.getException().getMessage());
             for (Throwable throwable : result.getExceptions()) {
                 methodResult.addFailure(failureMessage(throwable), stackTrace(throwable), exceptionClassName(throwable));
             }
