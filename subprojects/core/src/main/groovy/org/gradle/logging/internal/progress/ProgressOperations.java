@@ -16,6 +16,7 @@
 
 package org.gradle.logging.internal.progress;
 
+import com.google.common.collect.Iterables;
 import org.gradle.logging.internal.ProgressCompleteEvent;
 import org.gradle.logging.internal.ProgressEvent;
 import org.gradle.logging.internal.ProgressStartEvent;
@@ -26,6 +27,7 @@ public class ProgressOperations {
 
     private final Map<Long, LinkedList<ProgressOperation>> operations = new LinkedHashMap<Long, LinkedList<ProgressOperation>>();
     private LinkedList<ProgressOperation> recentlyChanged;
+    private LinkedList<ProgressOperation> root;
 
     public void start(ProgressStartEvent event) {
         LinkedList ops = operations.get(event.getThreadId());
@@ -35,6 +37,9 @@ public class ProgressOperations {
         }
         ops.addLast(new ProgressOperation(event.getShortDescription(), event.getStatus()));
         recentlyChanged = ops;
+        if (root == null || root.isEmpty()) {
+            root = ops;
+        }
     }
 
     public void complete(ProgressCompleteEvent event) {
@@ -52,8 +57,11 @@ public class ProgressOperations {
         recentlyChanged = op;
     }
 
-    public List<ProgressOperation> getOperations() {
-        return recentlyChanged;
+    public Iterable<ProgressOperation> getOperations() {
+        if (root == recentlyChanged) {
+            return root;
+        }
+        return Iterables.concat(root, recentlyChanged);
     }
 
     public int getParallelOperationsCount() {

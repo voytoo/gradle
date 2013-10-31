@@ -19,8 +19,6 @@ package org.gradle.logging.internal;
 import org.gradle.internal.nativeplatform.console.ConsoleMetaData;
 import org.gradle.logging.internal.progress.ProgressOperation;
 
-import java.util.List;
-
 public class DefaultStatusBarFormatter implements StatusBarFormatter {
     private final ConsoleMetaData consoleMetaData;
 
@@ -28,7 +26,7 @@ public class DefaultStatusBarFormatter implements StatusBarFormatter {
         this.consoleMetaData = consoleMetaData;
     }
 
-    public String format(List<ProgressOperation> operations, int extraParallelTasks) {
+    public String format(Iterable<ProgressOperation> operations, int extraParallelTasks) {
         StringBuilder builder = new StringBuilder();
         for (ProgressOperation operation : operations) {
             String message = operation.getMessage();
@@ -41,9 +39,9 @@ public class DefaultStatusBarFormatter implements StatusBarFormatter {
             builder.append("> ");
             builder.append(message);
         }
-        if (extraParallelTasks > 0 && !operations.isEmpty()) {
+        if (extraParallelTasks > 0 && builder.length() > 0) {
             builder.append(" | + ").append(extraParallelTasks)
-                    .append((extraParallelTasks == 1)? " parallel task" : " parallel tasks");
+                    .append((extraParallelTasks == 1) ? " parallel task" : " parallel tasks");
         }
         return trim(builder);
     }
