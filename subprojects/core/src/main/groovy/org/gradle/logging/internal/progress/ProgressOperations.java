@@ -21,47 +21,49 @@ import org.gradle.logging.internal.ProgressCompleteEvent;
 import org.gradle.logging.internal.ProgressEvent;
 import org.gradle.logging.internal.ProgressStartEvent;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.Map;
 
 public class ProgressOperations {
 
     private final Map<Long, LinkedList<ProgressOperation>> operations = new LinkedHashMap<Long, LinkedList<ProgressOperation>>();
-    private LinkedList<ProgressOperation> recentlyChanged;
-    private LinkedList<ProgressOperation> root;
+    private LinkedList<ProgressOperation> recentOperations;
+    private LinkedList<ProgressOperation> rootOperations;
 
     public void start(ProgressStartEvent event) {
-        LinkedList ops = operations.get(event.getThreadId());
+        LinkedList ops = operations.get(event.getGroupId());
         if (ops == null) {
             ops = new LinkedList();
-            operations.put(event.getThreadId(), ops);
+            operations.put(event.getGroupId(), ops);
         }
         ops.addLast(new ProgressOperation(event.getShortDescription(), event.getStatus()));
-        recentlyChanged = ops;
-        if (root == null || root.isEmpty()) {
-            root = ops;
+        recentOperations = ops;
+        if (rootOperations == null || rootOperations.isEmpty()) {
+            rootOperations = ops;
         }
     }
 
     public void complete(ProgressCompleteEvent event) {
-        LinkedList<ProgressOperation> op = operations.get(event.getThreadId());
+        LinkedList<ProgressOperation> op = operations.get(event.getGroupId());
         op.removeLast();
         if (op.isEmpty()) {
-            operations.remove(event.getThreadId());
+            operations.remove(event.getGroupId());
         }
-        recentlyChanged = op;
+        recentOperations = op;
     }
 
     public void progress(ProgressEvent event) {
-        LinkedList<ProgressOperation> op = operations.get(event.getThreadId());
+        LinkedList<ProgressOperation> op = operations.get(event.getGroupId());
         op.getLast().status = event.getStatus();
-        recentlyChanged = op;
+        recentOperations = op;
     }
 
     public Iterable<ProgressOperation> getOperations() {
-        if (root == recentlyChanged) {
-            return root;
+        if (rootOperations == recentOperations) {
+            return rootOperations;
         }
-        return Iterables.concat(root, recentlyChanged);
+        return Iterables.concat(rootOperations, recentOperations);
     }
 
     public int getParallelOperationsCount() {

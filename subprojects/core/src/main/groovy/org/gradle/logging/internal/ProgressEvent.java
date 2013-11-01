@@ -16,14 +16,15 @@
 package org.gradle.logging.internal;
 
 import org.gradle.api.logging.LogLevel;
+import org.gradle.logging.internal.progress.GroupedProgressEvent;
 
-public class ProgressEvent extends CategorisedOutputEvent {
-    private final long threadId;
+public class ProgressEvent extends CategorisedOutputEvent implements GroupedProgressEvent {
+    private final long groupId;
     private final String status;
 
-    public ProgressEvent(long threadId, long timestamp, String category, String status) {
+    public ProgressEvent(long groupId, long timestamp, String category, String status) {
         super(timestamp, category, LogLevel.LIFECYCLE);
-        this.threadId = threadId;
+        this.groupId = groupId;
         this.status = status;
     }
 
@@ -36,7 +37,7 @@ public class ProgressEvent extends CategorisedOutputEvent {
         return String.format("Progress %s", status);
     }
 
-    public long getThreadId() {
-        return threadId;
+    public long getGroupId() {
+        return groupId;
     }
 }
