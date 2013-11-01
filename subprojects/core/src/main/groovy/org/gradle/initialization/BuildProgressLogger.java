@@ -85,14 +85,21 @@ class BuildProgressLogger extends BuildAdapter implements TaskExecutionGraphList
     public void beforeExecute(Task task) {}
 
     public void afterExecute(Task task, TaskState state) {
-        progressLogger.progress(buildProgress.progress());
+        if (task.getProject().getGradle() == gradle) {
+            progressLogger.progress(buildProgress.progress());
+        }
     }
 
     public void beforeEvaluate(Project project) {
-        progressLogger.progress(configurationProgress.update(project.getPath()));
+        if (project.getGradle() == gradle) {
+            String message = configurationProgress.update(project.getPath());
+            progressLogger.progress(message);
+        }
     }
 
     public void afterEvaluate(Project project, ProjectState state) {
-        progressLogger.progress(configurationProgress.progress());
+        if (project.getGradle() == gradle) {
+            progressLogger.progress(configurationProgress.progress());
+        }
     }
 }
