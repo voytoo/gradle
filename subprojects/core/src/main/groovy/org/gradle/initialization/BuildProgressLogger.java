@@ -35,7 +35,10 @@ class BuildProgressLogger extends BuildAdapter implements TaskExecutionGraphList
     private final ProgressLoggerFactory progressLoggerFactory;
     private Gradle gradle;
     private BuildPhaseProgress buildProgress;
-    private BuildPhaseProgress configurationProgress;
+    private int configuredProjects = 0;
+    private ProgressLogger confLogger;
+    private int totalProjects;
+    private ProgressLogger currentProjectLogger;
 
     public BuildProgressLogger(ProgressLoggerFactory progressLoggerFactory) {
         this.progressLoggerFactory = progressLoggerFactory;
@@ -45,8 +48,8 @@ class BuildProgressLogger extends BuildAdapter implements TaskExecutionGraphList
     public void buildStarted(Gradle gradle) {
         if (gradle.getParent() == null) {
             progressLogger = progressLoggerFactory.newOperation(BuildProgressLogger.class);
-            progressLogger.setDescription("Configure projects");
-            progressLogger.setShortDescription("Configuring 0%");
+            progressLogger.setDescription("Initialize build");
+            progressLogger.setShortDescription("Loading");
             progressLogger.started();
             this.gradle = gradle;
         }
@@ -55,13 +58,19 @@ class BuildProgressLogger extends BuildAdapter implements TaskExecutionGraphList
     @Override
     public void projectsLoaded(Gradle gradle) {
         if (gradle.getParent() == null) {
-            configurationProgress = new BuildPhaseProgress("Configuring", gradle.getRootProject().getAllprojects().size() + 1); //adding one for building task graph
+            totalProjects = gradle.getRootProject().getAllprojects().size();
+            confLogger = progressLoggerFactory.newOperation(BuildProgressLogger.class);
+            confLogger.setDescription("Configure projects");
+            confLogger.setShortDescription("0/" + totalProjects + " projects");
+            confLogger.started();
         }
     }
 
     public void graphPopulated(TaskExecutionGraph graph) {
         if (graph == gradle.getTaskGraph()) {
-            progressLogger.completed();
+            confLogger.completed();
+            confLogger = null;
+            progressLogger.completed("Task graph ready");
             progressLogger = progressLoggerFactory.newOperation(BuildProgressLogger.class);
             progressLogger.setDescription("Execute tasks");
             String desc = "Building";
@@ -78,7 +87,7 @@ class BuildProgressLogger extends BuildAdapter implements TaskExecutionGraphList
             progressLogger = null;
             gradle = null;
             buildProgress = null;
-            configurationProgress = null;
+            confLogger = null;
         }
     }
 
@@ -91,15 +100,19 @@ class BuildProgressLogger extends BuildAdapter implements TaskExecutionGraphList
     }
 
     public void beforeEvaluate(Project project) {
-        if (project.getGradle() == gradle) {
-            String message = configurationProgress.update(project.getPath());
-            progressLogger.progress(message);
+        if (project.getGradle() == gradle && confLogger != null) {
+            currentProjectLogger = progressLoggerFactory.newOperation(BuildProgressLogger.class);
+            currentProjectLogger.setDescription("Configuring " + project);
+            currentProjectLogger.setShortDescription("Configuring " + (project.getPath().equals(":")? "root project" : project.getPath()));
+            currentProjectLogger.started();
         }
     }
 
     public void afterEvaluate(Project project, ProjectState state) {
-        if (project.getGradle() == gradle) {
-            progressLogger.progress(configurationProgress.progress());
+        if (project.getGradle() == gradle && confLogger != null) {
+            currentProjectLogger.completed();
+            currentProjectLogger = null;
+            confLogger.progress(++configuredProjects + "/" + totalProjects + " projects");
         }
     }
 }
