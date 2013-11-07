@@ -22,6 +22,8 @@ import org.gradle.cache.CacheValidator;
 import org.gradle.cache.PersistentCache;
 import org.gradle.groovy.scripts.ScriptSource;
 import org.gradle.groovy.scripts.Transformer;
+import org.gradle.logging.ProgressLogger;
+import org.gradle.logging.ProgressLoggerFactory;
 import org.gradle.util.hash.HashUtil;
 
 import java.io.File;
@@ -33,13 +35,16 @@ import java.util.Map;
  */
 public class FileCacheBackedScriptClassCompiler implements ScriptClassCompiler {
     private final ScriptCompilationHandler scriptCompilationHandler;
+    private ProgressLoggerFactory progressLoggerFactory;
     private final CacheRepository cacheRepository;
     private final CacheValidator validator;
 
-    public FileCacheBackedScriptClassCompiler(CacheRepository cacheRepository, CacheValidator validator, ScriptCompilationHandler scriptCompilationHandler) {
+    public FileCacheBackedScriptClassCompiler(CacheRepository cacheRepository, CacheValidator validator,
+                                              ScriptCompilationHandler scriptCompilationHandler, ProgressLoggerFactory progressLoggerFactory) {
         this.cacheRepository = cacheRepository;
         this.validator = validator;
         this.scriptCompilationHandler = scriptCompilationHandler;
+        this.progressLoggerFactory = progressLoggerFactory;
     }
 
     public <T extends Script> Class<? extends T> compile(ScriptSource source, ClassLoader classLoader, Transformer transformer, Class<T> scriptBaseClass) {
@@ -77,7 +82,15 @@ public class FileCacheBackedScriptClassCompiler implements ScriptClassCompiler {
 
         public void execute(PersistentCache cache) {
             File classesDir = classesDir(cache);
-            scriptCompilationHandler.compileToDir(source, classLoader, classesDir, transformer, scriptBaseClass);
+            ProgressLogger op = progressLoggerFactory.newOperation(DefaultScriptCompilationHandler.class);
+            op.setDescription("Compile script " + source + "into cache");
+            op.setShortDescription("Compiling script into cache");
+            op.started();
+            try {
+                scriptCompilationHandler.compileToDir(source, classLoader, classesDir, transformer, scriptBaseClass);
+            } finally {
+                op.completed();
+            }
         }
     }
 }

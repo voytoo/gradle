@@ -60,6 +60,7 @@ import org.gradle.invocation.BuildClassLoaderRegistry;
 import org.gradle.invocation.DefaultBuildClassLoaderRegistry;
 import org.gradle.listener.ListenerManager;
 import org.gradle.logging.LoggingManagerInternal;
+import org.gradle.logging.ProgressLoggerFactory;
 import org.gradle.messaging.actor.ActorFactory;
 import org.gradle.messaging.actor.internal.DefaultActorFactory;
 import org.gradle.messaging.remote.MessagingServer;
@@ -169,7 +170,7 @@ public class BuildScopeServices extends DefaultServiceRegistry implements Servic
                                         get(CacheRepository.class),
                                         scriptCacheInvalidator,
                                         new DefaultScriptCompilationHandler(
-                                                emptyScriptGenerator)),
+                                                emptyScriptGenerator), get(ProgressLoggerFactory.class)),
                                 emptyScriptGenerator)),
                 new DefaultScriptRunnerFactory(scriptExecutionListener));
     }
