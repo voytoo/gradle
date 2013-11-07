@@ -49,7 +49,7 @@ class BuildProgressLogger extends BuildAdapter implements TaskExecutionGraphList
         if (gradle.getParent() == null) {
             progressLogger = progressLoggerFactory.newOperation(BuildProgressLogger.class);
             progressLogger.setDescription("Initialize build");
-            progressLogger.setShortDescription("Loading");
+            progressLogger.setShortDescription("Configuring");
             progressLogger.started();
             this.gradle = gradle;
         }
@@ -103,7 +103,7 @@ class BuildProgressLogger extends BuildAdapter implements TaskExecutionGraphList
         if (project.getGradle() == gradle && confLogger != null) {
             currentProjectLogger = progressLoggerFactory.newOperation(BuildProgressLogger.class);
             currentProjectLogger.setDescription("Configuring " + project);
-            currentProjectLogger.setShortDescription("Configuring " + (project.getPath().equals(":")? "root project" : project.getPath()));
+            currentProjectLogger.setShortDescription((project.getPath().equals(":")? "root project" : project.getPath()));
             currentProjectLogger.started();
         }
     }
