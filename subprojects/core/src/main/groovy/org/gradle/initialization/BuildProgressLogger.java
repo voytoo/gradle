@@ -35,7 +35,7 @@ class BuildProgressLogger extends BuildAdapter implements TaskExecutionGraphList
     private final ProgressLoggerFactory progressLoggerFactory;
     private Gradle gradle;
     private BuildPhaseProgress buildProgress;
-    private int configuredProjects = 0;
+    private int configuredProjects;
     private ProgressLogger confLogger;
     private int totalProjects;
     private ProgressLogger currentProjectLogger;
@@ -58,6 +58,7 @@ class BuildProgressLogger extends BuildAdapter implements TaskExecutionGraphList
     @Override
     public void projectsLoaded(Gradle gradle) {
         if (gradle.getParent() == null) {
+            configuredProjects = 0;
             totalProjects = gradle.getRootProject().getAllprojects().size();
             confLogger = progressLoggerFactory.newOperation(BuildProgressLogger.class);
             confLogger.setDescription("Configure projects");
