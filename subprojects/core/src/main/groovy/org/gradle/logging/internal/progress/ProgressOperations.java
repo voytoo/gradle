@@ -17,9 +17,6 @@
 package org.gradle.logging.internal.progress;
 
 import com.google.common.collect.Iterables;
-import org.gradle.logging.internal.ProgressCompleteEvent;
-import org.gradle.logging.internal.ProgressEvent;
-import org.gradle.logging.internal.ProgressStartEvent;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -31,31 +28,31 @@ public class ProgressOperations {
     private LinkedList<ProgressOperation> recentOperations;
     private LinkedList<ProgressOperation> rootOperations;
 
-    public void start(ProgressStartEvent event) {
-        LinkedList ops = operations.get(event.getGroupId());
+    public void start(String description, String status, long groupId) {
+        LinkedList ops = operations.get(groupId);
         if (ops == null) {
             ops = new LinkedList();
-            operations.put(event.getGroupId(), ops);
+            operations.put(groupId, ops);
         }
-        ops.addLast(new ProgressOperation(event.getShortDescription(), event.getStatus()));
+        ops.addLast(new ProgressOperation(description, status));
         recentOperations = ops;
         if (rootOperations == null || rootOperations.isEmpty()) {
             rootOperations = ops;
         }
     }
 
-    public void complete(ProgressCompleteEvent event) {
-        LinkedList<ProgressOperation> op = operations.get(event.getGroupId());
+    public void complete(long groupId) {
+        LinkedList<ProgressOperation> op = operations.get(groupId);
         op.removeLast();
         if (op.isEmpty()) {
-            operations.remove(event.getGroupId());
+            operations.remove(groupId);
         }
         recentOperations = op;
     }
 
-    public void progress(ProgressEvent event) {
-        LinkedList<ProgressOperation> op = operations.get(event.getGroupId());
-        op.getLast().status = event.getStatus();
+    public void progress(String description, long groupId) {
+        LinkedList<ProgressOperation> op = operations.get(groupId);
+        op.getLast().status = description;
         recentOperations = op;
     }
 

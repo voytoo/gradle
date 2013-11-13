@@ -33,14 +33,14 @@ public class ConsoleBackedProgressRenderer implements OutputEventListener {
     public void onOutput(OutputEvent event) {
         if (event instanceof ProgressStartEvent) {
             ProgressStartEvent startEvent = (ProgressStartEvent) event;
-            operations.start(startEvent);
+            operations.start(startEvent.getShortDescription(), startEvent.getStatus(), startEvent.getGroupId());
             updateText();
         } else if (event instanceof ProgressCompleteEvent) {
-            operations.complete((ProgressCompleteEvent) event);
+            operations.complete(((ProgressCompleteEvent) event).getGroupId());
             updateText();
         } else if (event instanceof ProgressEvent) {
             ProgressEvent progressEvent = (ProgressEvent) event;
-            operations.progress(progressEvent);
+            operations.progress(progressEvent.getStatus(), progressEvent.getGroupId());
             updateText();
         }
         listener.onOutput(event);
