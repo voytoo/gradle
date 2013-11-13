@@ -135,4 +135,16 @@ class ProgressOperationsTest extends Specification {
         then:
         operations*.message == ["Building", "compiling"]
     }
+
+    def "shows most recent operation from given group even if it has completed progress"() {
+        when:
+        ops.start("Building", "", 1)
+        ops.start("task 1", "", 2)
+        ops.start("task 2", "", 3)
+        ops.start("compiling", "", 3)
+        ops.complete(3)
+
+        then:
+        operations*.message == ["Building", "task 2"]
+    }
 }
