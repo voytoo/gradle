@@ -82,9 +82,9 @@ class ProgressOperationsTest extends Specification {
     def "is empty when everything completed"() {
         when:
         ops.start("Building", "", 1)
-        ops.start("Resolving", "", 1)
-        ops.progress("Download", 1)
-        ops.complete(1)
+        ops.start("Resolving", "", 2)
+        ops.progress("Download", 2)
+        ops.complete(2)
         ops.complete(1)
 
         then:
@@ -125,15 +125,14 @@ class ProgressOperationsTest extends Specification {
     def "excludes completed events from from interleaving groups"() {
         when:
         ops.start("Building", "", 1)
-
         ops.start("task 1", "", 2)
-        ops.progress("compiling", 2)
-
         ops.start("task 2", "", 3)
+
+        ops.progress("compiling", 2)
         ops.progress("resolving", 3)
         ops.complete(3)
 
         then:
-        operations*.message == ["Building"]
+        operations*.message == ["Building", "compiling"]
     }
 }

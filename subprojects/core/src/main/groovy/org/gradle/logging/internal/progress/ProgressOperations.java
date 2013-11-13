@@ -20,6 +20,7 @@ import com.google.common.collect.Iterables;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.emptySet;
@@ -27,8 +28,7 @@ import static java.util.Collections.emptySet;
 public class ProgressOperations {
 
     private final Map<Long, LinkedList<ProgressOperation>> operations = new LinkedHashMap<Long, LinkedList<ProgressOperation>>();
-    private LinkedList<ProgressOperation> recentOperations;
-    private LinkedList<ProgressOperation> rootOperations;
+    private LinkedList<Long> groups = new LinkedList<Long>();
 
     public void start(String description, String status, long groupId) {
         LinkedList ops = operations.get(groupId);
@@ -37,10 +37,12 @@ public class ProgressOperations {
             operations.put(groupId, ops);
         }
         ops.addLast(new ProgressOperation(description, status));
-        recentOperations = ops;
-        if (rootOperations == null || rootOperations.isEmpty()) {
-            rootOperations = ops;
-        }
+        markCurrentGroup(groupId);
+    }
+
+    private void markCurrentGroup(long groupId) {
+        groups.remove(groupId);
+        groups.addLast(groupId);
     }
 
     public void complete(long groupId) {
@@ -48,24 +50,26 @@ public class ProgressOperations {
         op.removeLast();
         if (op.isEmpty()) {
             operations.remove(groupId);
+            groups.remove(groupId);
         }
-        recentOperations = op;
     }
 
     public void progress(String description, long groupId) {
         LinkedList<ProgressOperation> op = operations.get(groupId);
         op.getLast().status = description;
-        recentOperations = op;
+        markCurrentGroup(groupId);
     }
 
     public Iterable<ProgressOperation> getOperations() {
-        if (rootOperations == null || rootOperations.isEmpty()) {
+        if (groups.isEmpty()) {
             return emptySet();
         }
-        if (rootOperations == recentOperations) {
-            return rootOperations;
+        List recent = operations.get(this.groups.getLast());
+        List root = operations.get(this.groups.getFirst());
+        if (root == recent) {
+            return root;
         }
-        return Iterables.concat(rootOperations, recentOperations);
+        return Iterables.concat(root, recent);
     }
 
     public int getParallelOperationsCount() {
