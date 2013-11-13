@@ -22,6 +22,8 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
+import static java.util.Collections.emptySet;
+
 public class ProgressOperations {
 
     private final Map<Long, LinkedList<ProgressOperation>> operations = new LinkedHashMap<Long, LinkedList<ProgressOperation>>();
@@ -57,6 +59,9 @@ public class ProgressOperations {
     }
 
     public Iterable<ProgressOperation> getOperations() {
+        if (rootOperations == null || rootOperations.isEmpty()) {
+            return emptySet();
+        }
         if (rootOperations == recentOperations) {
             return rootOperations;
         }
