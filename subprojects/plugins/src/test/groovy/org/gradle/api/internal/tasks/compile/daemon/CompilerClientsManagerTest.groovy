@@ -94,4 +94,19 @@ class CompilerClientsManagerTest extends ConcurrentSpecification {
         then:
         manager.reserveIdleClient(options) == client
     }
+
+    def "tired clients are gc'ed"() {
+        def client = Mock(CompilerDaemonClient) {
+            isCompatibleWith(_) >> true
+            isTired() >> true
+        }
+        starter.startDaemon(workingDir, options) >> client
+
+        when:
+        manager.reserveNewClient(workingDir, options)
+        manager.release(client)
+
+        then:
+        manager.reserveIdleClient(options) == null
+    }
 }

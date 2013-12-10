@@ -17,6 +17,8 @@ package org.gradle.api.internal.tasks.compile.daemon;
 
 import org.gradle.api.internal.tasks.compile.CompileSpec;
 import org.gradle.api.internal.tasks.compile.Compiler;
+import org.gradle.api.logging.Logger;
+import org.gradle.api.logging.Logging;
 import org.gradle.internal.concurrent.Stoppable;
 import org.gradle.internal.UncheckedException;
 import org.gradle.process.internal.WorkerProcess;
@@ -25,15 +27,29 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 
 class CompilerDaemonClient implements CompilerDaemon, CompilerDaemonClientProtocol, Stoppable {
+    private static final Logger LOG = Logging.getLogger(CompilerDaemonClient.class);
+
     private final DaemonForkOptions forkOptions;
     private final WorkerProcess workerProcess;
     private final CompilerDaemonServerProtocol server;
-    private final BlockingQueue<CompileResult> compileResults = new SynchronousQueue<CompileResult>();
+    private final BlockingQueue<CompileResult> compileResults;
+    private final static int TIRED_THRESHOLD;
+    private int invocationCount;
+
+    static {
+        TIRED_THRESHOLD = Integer.parseInt(System.getProperty("tiredThreshold", "10"));
+        LOG.lifecycle("Compiler daemons will recycle every {} invocations.");
+    }
 
     public CompilerDaemonClient(DaemonForkOptions forkOptions, WorkerProcess workerProcess, CompilerDaemonServerProtocol server) {
+        this(forkOptions, workerProcess, server, new SynchronousQueue<CompileResult>());
+    }
+
+    CompilerDaemonClient(DaemonForkOptions forkOptions, WorkerProcess workerProcess, CompilerDaemonServerProtocol server, SynchronousQueue<CompileResult> compileResults) {
         this.forkOptions = forkOptions;
         this.workerProcess = workerProcess;
         this.server = server;
+        this.compileResults = compileResults;
     }
 
     public <T extends CompileSpec> CompileResult execute(Compiler<T> compiler, T spec) {
@@ -44,6 +60,8 @@ class CompilerDaemonClient implements CompilerDaemon, CompilerDaemonClientProtoc
             return compileResults.take();
         } catch (InterruptedException e) {
             throw UncheckedException.throwAsUncheckedException(e);
+        } finally {
+            invocationCount++;
         }
     }
 
@@ -62,5 +80,9 @@ class CompilerDaemonClient implements CompilerDaemon, CompilerDaemonClientProtoc
         } catch (InterruptedException e) {
             throw UncheckedException.throwAsUncheckedException(e);
         }
+    }
+
+    public boolean isTired() {
+        return invocationCount > TIRED_THRESHOLD;
     }
 }

@@ -67,7 +67,13 @@ public class CompilerClientsManager {
 
     public void release(CompilerDaemonClient client) {
         synchronized (lock) {
-            idleClients.add(client);
+            if (client.isTired()) {
+                LOGGER.lifecycle("Compiler daemon is tired, recycling...");
+                client.stop();
+                allClients.remove(client);
+            } else {
+                idleClients.add(client);
+            }
         }
     }
 
