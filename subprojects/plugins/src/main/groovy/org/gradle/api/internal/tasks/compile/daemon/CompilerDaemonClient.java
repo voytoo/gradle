@@ -38,7 +38,7 @@ class CompilerDaemonClient implements CompilerDaemon, CompilerDaemonClientProtoc
 
     static {
         TIRED_THRESHOLD = Integer.parseInt(System.getProperty("tiredThreshold", "10"));
-        LOG.lifecycle("Compiler daemons will recycle every {} invocations.");
+        LOG.lifecycle("Compiler daemons will recycle every {} invocations.", TIRED_THRESHOLD);
     }
 
     public CompilerDaemonClient(DaemonForkOptions forkOptions, WorkerProcess workerProcess, CompilerDaemonServerProtocol server) {
