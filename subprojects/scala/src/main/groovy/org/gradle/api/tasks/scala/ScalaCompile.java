@@ -114,7 +114,6 @@ public class ScalaCompile extends AbstractCompile {
         this.compiler = compiler;
     }
 
-    @Override
     protected void compile() {
         checkScalaClasspathIsNonEmpty();
         DefaultScalaJavaJointCompileSpec spec = new DefaultScalaJavaJointCompileSpec();

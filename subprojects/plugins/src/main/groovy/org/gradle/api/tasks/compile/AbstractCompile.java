@@ -16,7 +16,10 @@
 package org.gradle.api.tasks.compile;
 
 import org.gradle.api.file.FileCollection;
-import org.gradle.api.tasks.*;
+import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.InputFiles;
+import org.gradle.api.tasks.OutputDirectory;
+import org.gradle.api.tasks.SourceTask;
 
 import java.io.File;
 
@@ -28,9 +31,6 @@ public abstract class AbstractCompile extends SourceTask {
     private String sourceCompatibility;
     private String targetCompatibility;
     private FileCollection classpath;
-
-    @TaskAction
-    protected abstract void compile();
 
     /**
      * Returns the classpath to use to compile the source files.

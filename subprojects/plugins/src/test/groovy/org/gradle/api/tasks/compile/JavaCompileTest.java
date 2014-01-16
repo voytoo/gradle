@@ -65,7 +65,7 @@ public class JavaCompileTest extends AbstractCompileTest {
             allowing(result).getDidWork();
             will(returnValue(numFilesCompiled > 0));
         }});
-        compile.compile();
+        compile.compile(null);
     }
 
     @Test

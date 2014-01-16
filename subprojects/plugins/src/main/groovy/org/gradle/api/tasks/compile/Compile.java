@@ -25,6 +25,7 @@ import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.WorkResult;
+import org.gradle.api.tasks.incremental.IncrementalTaskInputs;
 import org.gradle.internal.Factory;
 import org.gradle.util.DeprecationLogger;
 
@@ -55,7 +56,7 @@ public class Compile extends AbstractCompile {
     }
 
     @TaskAction
-    protected void compile() {
+    protected void compile(IncrementalTaskInputs inputs) {
         DefaultJavaCompileSpec spec = new DefaultJavaCompileSpec();
         spec.setSource(getSource());
         spec.setDestinationDir(getDestinationDir());
