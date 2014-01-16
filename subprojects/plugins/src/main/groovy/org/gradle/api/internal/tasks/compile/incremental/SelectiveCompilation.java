@@ -35,7 +35,7 @@ public class SelectiveCompilation {
                     if (name.endsWith(".java")) {
                         //hacky, below works only when classe are not in packages
                         changedSourceOnly.include(name);
-                        Iterable<String> dependents = tree.getDependents(inputFileDetails.getFile().getName().replaceAll(".java", ""));
+                        Iterable<String> dependents = tree.getActualDependents(inputFileDetails.getFile().getName().replaceAll(".java", ""));
                         for (String d : dependents) {
                             changedSourceOnly.include(d + ".java");
                         }

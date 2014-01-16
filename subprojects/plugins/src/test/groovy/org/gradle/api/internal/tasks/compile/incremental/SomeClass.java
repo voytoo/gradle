@@ -14,5 +14,9 @@ public class SomeClass {
         return new HashSet<String>();
     }
 
-    private class Foo {}
+    private class Foo {
+        public String toString() {
+            return "" + new AccessedFromPrivateClass();
+        }
+    }
 }
