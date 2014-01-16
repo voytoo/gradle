@@ -3,8 +3,6 @@ package org.gradle.api.internal.tasks.compile.incremental;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 import org.apache.commons.io.FileUtils;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.Type;
 
 import java.io.*;
 import java.util.*;
@@ -25,7 +23,7 @@ public class ClassDependencyTree implements Serializable {
         while (output.hasNext()) {
             File classFile = (File) output.next();
             try {
-                Set<String> classesUsed = getClassesUsedBy(classFile);
+                Collection<String> classesUsed = new ClassDependenciesAnalyzer().getClassesUsedBy(classFile);
                 String className = classFile.getName().replaceAll(".class", "");
                 classes.add(className);
                 for (String dependency : classesUsed) {
@@ -41,36 +39,6 @@ public class ClassDependencyTree implements Serializable {
         for (String c : classes) {
             this.dependents.put(c, new LinkedList(allDependents.get(c)));
         }
-    }
-
-    private Set<String> getClassesUsedBy(File classFile) throws IOException {
-        ClassReader reader;
-        FileInputStream input = new FileInputStream(classFile);
-        try {
-            reader = new ClassReader(input);
-        } finally {
-            input.close();
-        }
-
-        Set<String> out = new HashSet<String>();
-        char[] charBuffer = new char[reader.getMaxStringLength()];
-        for (int i = 1; i < reader.getItemCount(); i++) {
-            int itemOffset = reader.getItem(i);
-            if (itemOffset > 0 && reader.readByte(itemOffset - 1) == 7) {
-                // A CONSTANT_Class entry, read the class descriptor
-                String classDescriptor = reader.readUTF8(itemOffset, charBuffer);
-                Type type = Type.getObjectType(classDescriptor);
-                while (type.getSort() == Type.ARRAY) {
-                    type = type.getElementType();
-                }
-                if (type.getSort() != Type.OBJECT) {
-                    // A primitive type
-                    continue;
-                }
-                out.add(type.getClassName());
-            }
-        }
-        return out;
     }
 
     public void writeTo(File outputFile) {
