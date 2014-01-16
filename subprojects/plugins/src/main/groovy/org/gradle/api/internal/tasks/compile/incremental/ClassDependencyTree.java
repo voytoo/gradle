@@ -20,11 +20,12 @@ public class ClassDependencyTree implements Serializable {
         Iterator output = FileUtils.iterateFiles(compiledClassesDir, new String[]{"class"}, true);
         Multimap<String, String> allDependents = LinkedListMultimap.create();
         Set<String> classes = new HashSet<String>();
+        ClassNameProvider nameProvider = new ClassNameProvider(compiledClassesDir);
         while (output.hasNext()) {
             File classFile = (File) output.next();
             try {
                 Collection<String> classesUsed = new ClassDependenciesAnalyzer().getClassesUsedBy(classFile);
-                String className = classFile.getName().replaceAll(".class", "");
+                String className = nameProvider.provideName(classFile);
                 classes.add(className);
                 for (String dependency : classesUsed) {
                     if (!dependency.equals(className)) {
@@ -70,12 +71,15 @@ public class ClassDependencyTree implements Serializable {
     }
 
     public Iterable<String> getDependents(String className) {
-        List<String> out = new LinkedList<String>();
+        Set<String> out = new HashSet<String>();
         recurseDependents(out, className);
         return out;
     }
 
-    private void recurseDependents(List<String> accumulator, String className) {
+    private void recurseDependents(Collection<String> accumulator, String className) {
+        if (accumulator.contains(className)) {
+            return;
+        }
         Collection<String> out = dependents.get(className);
         if (out != null && !out.isEmpty()) {
             accumulator.addAll(out);
