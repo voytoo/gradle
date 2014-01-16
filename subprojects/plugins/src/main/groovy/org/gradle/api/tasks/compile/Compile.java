@@ -21,6 +21,7 @@ import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.api.internal.tasks.compile.Compiler;
 import org.gradle.api.internal.tasks.compile.*;
 import org.gradle.api.internal.tasks.compile.daemon.CompilerDaemonManager;
+import org.gradle.api.internal.tasks.compile.incremental.SelectiveCompilation;
 import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
@@ -57,16 +58,23 @@ public class Compile extends AbstractCompile {
 
     @TaskAction
     protected void compile(IncrementalTaskInputs inputs) {
+        SelectiveCompilation selectiveCompilation = new SelectiveCompilation(inputs, getSource(), getClasspath(), getDestinationDir(), getClassTreeCache());
+
         DefaultJavaCompileSpec spec = new DefaultJavaCompileSpec();
-        spec.setSource(getSource());
+        spec.setSource(selectiveCompilation.getSource());
         spec.setDestinationDir(getDestinationDir());
-        spec.setClasspath(getClasspath());
+        spec.setClasspath(selectiveCompilation.getClasspath());
         spec.setDependencyCacheDir(getDependencyCacheDir());
         spec.setSourceCompatibility(getSourceCompatibility());
         spec.setTargetCompatibility(getTargetCompatibility());
         spec.setCompileOptions(compileOptions);
         WorkResult result = javaCompiler.execute(spec);
         setDidWork(result.getDidWork());
+        selectiveCompilation.compilationComplete();
+    }
+
+    private File getClassTreeCache() {
+        return new File(getProject().getBuildDir(), "class-tree.bin");
     }
 
     @OutputDirectory

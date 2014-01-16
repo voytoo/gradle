@@ -16,9 +16,8 @@
 package org.gradle.api.internal.tasks.compile;
 
 import org.gradle.api.AntBuilder;
-import org.gradle.internal.Factory;
 import org.gradle.api.internal.TaskOutputsInternal;
-import org.gradle.language.jvm.internal.SimpleStaleClassCleaner;
+import org.gradle.internal.Factory;
 import org.gradle.language.jvm.internal.StaleClassCleaner;
 
 public class IncrementalJavaCompiler extends IncrementalJavaCompilerSupport<JavaCompileSpec> implements Compiler<JavaCompileSpec> {
@@ -44,7 +43,7 @@ public class IncrementalJavaCompiler extends IncrementalJavaCompilerSupport<Java
             cleaner.setDependencyCacheDir(spec.getDependencyCacheDir());
             return cleaner;
         } else {
-            return new SimpleStaleClassCleaner(taskOutputs);
+            return new NoOpStaleClassCleaner();
         }
     }
 }
