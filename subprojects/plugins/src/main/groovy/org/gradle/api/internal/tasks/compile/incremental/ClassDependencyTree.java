@@ -1,4 +1,4 @@
-package org.gradle.api.tasks.compile;
+package org.gradle.api.internal.tasks.compile.incremental;
 
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;

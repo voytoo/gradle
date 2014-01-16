@@ -4,7 +4,6 @@ import org.gradle.api.Action;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.FileTree;
 import org.gradle.api.internal.file.collections.SimpleFileCollection;
-import org.gradle.api.tasks.compile.ClassDependencyTree;
 import org.gradle.api.tasks.incremental.IncrementalTaskInputs;
 import org.gradle.api.tasks.incremental.InputFileDetails;
 import org.gradle.api.tasks.util.PatternSet;
