@@ -25,6 +25,8 @@ public class SelectiveCompilation {
         this.compileDestination = compileDestination;
         this.classTreeCache = classTreeCache;
         if (inputs.isIncremental()) {
+            final InputOutputMapper mapper = new InputOutputMapper(sourceDirs, compileDestination);
+
             //load dependency tree
             final ClassDependencyTree tree = ClassDependencyTree.loadFrom(classTreeCache);
 
@@ -35,17 +37,17 @@ public class SelectiveCompilation {
                 public void execute(InputFileDetails inputFileDetails) {
                     String name = inputFileDetails.getFile().getName();
                     if (name.endsWith(".java")) {
-                        changedSourceOnly.include(name);
-                        Iterable<String> dependents = tree.getActualDependents(inputFileDetails.getFile().getName().replaceAll(".java", ""));
+                        JavaSourceClass source = mapper.toJavaSourceClass(inputFileDetails.getFile());
+                        changedSourceOnly.include(source.getRelativePath());
+                        Iterable<String> dependents = tree.getActualDependents(source.getClassName());
                         for (String d : dependents) {
                             //compiler.ensureRefreshed(d); //todo
-                            changedSourceOnly.include(d + ".java");
+                            changedSourceOnly.include(mapper.toJavaSourceClass(d).getRelativePath());
                         }
                     }
                 }
             });
             inputs.removed(new Action<InputFileDetails>() {
-                final InputOutputMapper mapper = new InputOutputMapper(sourceDirs, compileDestination);
                 public void execute(InputFileDetails inputFileDetails) {
                     compiler.ensureRefreshed(mapper.toOutputFile(inputFileDetails.getFile()));
                 }

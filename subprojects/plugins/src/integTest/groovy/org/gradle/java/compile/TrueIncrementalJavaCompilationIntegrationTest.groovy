@@ -13,13 +13,16 @@ class TrueIncrementalJavaCompilationIntegrationTest extends AbstractIntegrationS
 //            compileJava.options.fork = true
         """
 
-        file("src/main/java/Person.java") << """public interface Person {
+        file("src/main/java/org/Person.java") << """package org;
+        public interface Person {
             String getName();
         }"""
-        file("src/main/java/PersonImpl.java") << """public class PersonImpl implements Person {
+        file("src/main/java/org/PersonImpl.java") << """package org;
+        public class PersonImpl implements Person {
             public String getName() { return "Szczepan"; }
         }"""
-        file("src/main/java/AnotherPersonImpl.java") << """public class AnotherPersonImpl extends PersonImpl {
+        file("src/main/java/org/AnotherPersonImpl.java") << """package org;
+        public class AnotherPersonImpl extends PersonImpl {
             public String getName() { return "Szczepan Faber"; }
         }"""
     }
@@ -27,14 +30,14 @@ class TrueIncrementalJavaCompilationIntegrationTest extends AbstractIntegrationS
     def "does not change the output files when no input has changed"() {
         when:
         run "compileJava"
-        def personTime = file("build/classes/main/Person.class").lastModified()
-        def implTime = file("build/classes/main/PersonImpl.class").lastModified()
+        def personTime = file("build/classes/main/org/Person.class").lastModified()
+        def implTime = file("build/classes/main/org/PersonImpl.class").lastModified()
 
         and:
         sleep(1000)
         run "compileJava"
-        def personTime2 = file("build/classes/main/Person.class").lastModified()
-        def implTime2 = file("build/classes/main/PersonImpl.class").lastModified()
+        def personTime2 = file("build/classes/main/org/Person.class").lastModified()
+        def implTime2 = file("build/classes/main/org/PersonImpl.class").lastModified()
 
         then:
         personTime == personTime2
@@ -44,22 +47,24 @@ class TrueIncrementalJavaCompilationIntegrationTest extends AbstractIntegrationS
     def "changes the output files when all input has changed"() {
         when:
         run "compileJava"
-        def personTime = file("build/classes/main/Person.class").lastModified()
-        def implTime = file("build/classes/main/PersonImpl.class").lastModified()
+        def personTime = file("build/classes/main/org/Person.class").lastModified()
+        def implTime = file("build/classes/main/org/PersonImpl.class").lastModified()
 
         and:
-        file("src/main/java/Person.java").text = """public interface Person {
+        file("src/main/java/org/Person.java").text = """package org;
+        public interface Person {
             String name();
         }"""
-        file("src/main/java/PersonImpl.java").text = """public class PersonImpl implements Person {
+        file("src/main/java/org/PersonImpl.java").text = """package org;
+        public class PersonImpl implements Person {
             public String name() { return "Szczepan"; }
         }"""
 
         and:
         sleep(1000)
         run "compileJava"
-        def personTime2 = file("build/classes/main/Person.class").lastModified()
-        def implTime2 = file("build/classes/main/PersonImpl.class").lastModified()
+        def personTime2 = file("build/classes/main/org/Person.class").lastModified()
+        def implTime2 = file("build/classes/main/org/PersonImpl.class").lastModified()
 
         then:
         personTime != personTime2
@@ -69,19 +74,20 @@ class TrueIncrementalJavaCompilationIntegrationTest extends AbstractIntegrationS
     def "touches only the output class that was changed"() {
         when:
         run "compileJava"
-        def personTime = file("build/classes/main/Person.class").lastModified()
-        def implTime = file("build/classes/main/PersonImpl.class").lastModified()
+        def personTime = file("build/classes/main/org/Person.class").lastModified()
+        def implTime = file("build/classes/main/org/PersonImpl.class").lastModified()
 
         and:
-        file("src/main/java/PersonImpl.java").text = """public class PersonImpl implements Person {
+        file("src/main/java/PersonImpl.java").text = """package org;
+        public class PersonImpl implements Person {
             public String getName() { return "Hans"; }
         }"""
 
         and:
         sleep(1000)
         run "compileJava"
-        def personTime2 = file("build/classes/main/Person.class").lastModified()
-        def implTime2 = file("build/classes/main/PersonImpl.class").lastModified()
+        def personTime2 = file("build/classes/main/org/Person.class").lastModified()
+        def implTime2 = file("build/classes/main/org/PersonImpl.class").lastModified()
 
         then:
         implTime != implTime2
@@ -91,21 +97,22 @@ class TrueIncrementalJavaCompilationIntegrationTest extends AbstractIntegrationS
     def "understands class dependencies"() {
         when:
         run "compileJava"
-        def personTime = file("build/classes/main/Person.class").lastModified()
-        def implTime = file("build/classes/main/PersonImpl.class").lastModified()
-        def anotherImplTime = file("build/classes/main/AnotherPersonImpl.class").lastModified()
+        def personTime = file("build/classes/main/org/Person.class").lastModified()
+        def implTime = file("build/classes/main/org/PersonImpl.class").lastModified()
+        def anotherImplTime = file("build/classes/main/org/AnotherPersonImpl.class").lastModified()
 
         and:
-        file("src/main/java/PersonImpl.java").text = """public class PersonImpl implements Person {
+        file("src/main/java/org/PersonImpl.java").text = """package org;
+        public class PersonImpl implements Person {
             public String getName() { return "Hans"; }
         }"""
 
         and:
         sleep(1000)
         run "compileJava"
-        def personTime2 = file("build/classes/main/Person.class").lastModified()
-        def implTime2 = file("build/classes/main/PersonImpl.class").lastModified()
-        def anotherImplTime2 = file("build/classes/main/AnotherPersonImpl.class").lastModified()
+        def personTime2 = file("build/classes/main/org/Person.class").lastModified()
+        def implTime2 = file("build/classes/main/org/PersonImpl.class").lastModified()
+        def anotherImplTime2 = file("build/classes/main/another/org/AnotherPersonImpl.class").lastModified()
 
         then:
         implTime != implTime2
@@ -116,23 +123,24 @@ class TrueIncrementalJavaCompilationIntegrationTest extends AbstractIntegrationS
     def "is sensitive to class deletion"() {
         when:
         run "compileJava"
-        def personTime = file("build/classes/main/Person.class").lastModified()
-        def anotherImplTime = file("build/classes/main/AnotherPersonImpl.class").lastModified()
+        def personTime = file("build/classes/main/org/Person.class").lastModified()
+        def anotherImplTime = file("build/classes/main/org/AnotherPersonImpl.class").lastModified()
 
         and:
-        assert file("src/main/java/PersonImpl.java").delete()
-        file("src/main/java/AnotherPersonImpl.java").text = """public class AnotherPersonImpl implements Person {
+        assert file("src/main/java/org/PersonImpl.java").delete()
+        file("src/main/java/org/AnotherPersonImpl.java").text = """package org;
+        public class AnotherPersonImpl implements Person {
             public String getName() { return "Hans"; }
         }"""
 
         and:
         sleep(1000)
         run "compileJava"
-        def personTime2 = file("build/classes/main/Person.class").lastModified()
-        def anotherImplTime2 = file("build/classes/main/AnotherPersonImpl.class").lastModified()
+        def personTime2 = file("build/classes/main/org/Person.class").lastModified()
+        def anotherImplTime2 = file("build/classes/main/org/AnotherPersonImpl.class").lastModified()
 
         then:
-        !file("build/classes/main/PersonImpl.class").exists()
+        !file("build/classes/main/org/PersonImpl.class").exists()
         anotherImplTime != anotherImplTime2
         personTime == personTime2
     }

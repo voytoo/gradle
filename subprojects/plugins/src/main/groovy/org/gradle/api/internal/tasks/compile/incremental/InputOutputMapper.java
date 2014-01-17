@@ -19,17 +19,32 @@ public class InputOutputMapper {
         this.compileDestination = compileDestination;
     }
 
-    public File toOutputFile(File inputJavaSource) {
+    public File toOutputFile(File javaSourceClass) {
+        return new File(compileDestination, toJavaSourceClass(javaSourceClass).getRelativePath().replaceAll("\\.java$", ".class"));
+    }
+
+    public JavaSourceClass toJavaSourceClass(File javaSourceClass) {
         for (File sourceDir : sourceDirs) {
-            if (inputJavaSource.getAbsolutePath().startsWith(sourceDir.getAbsolutePath())) { //perf tweak, this check is not 100% reliable
-                String relativePath = GFileUtils.relativePath(sourceDir, inputJavaSource);
+            if (javaSourceClass.getAbsolutePath().startsWith(sourceDir.getAbsolutePath())) { //perf tweak only
+                String relativePath = GFileUtils.relativePath(sourceDir, javaSourceClass);
                 if (!relativePath.startsWith("..")) {
-                    String relativeClass = relativePath.replaceAll("\\.java$", ".class");
-                    return new File(compileDestination, relativeClass);
+                    return new JavaSourceClass(relativePath);
                 }
             }
         }
-        throw new IllegalArgumentException(format("Unable to map input java source: '%s' because it does not belong to any of the source dirs: '%s'",
-                inputJavaSource, sourceDirs));
+        throw new IllegalArgumentException(format("Unable to find source java class: '%s' because it does not belong to any of the source dirs: '%s'",
+                javaSourceClass, sourceDirs));
+
+    }
+
+    public JavaSourceClass toJavaSourceClass(String className) {
+        String relativePath = className.replaceAll("\\.", "/").concat(".java");
+        for (File sourceDir : sourceDirs) {
+            if (new File(sourceDir, relativePath).isFile()) {
+                return new JavaSourceClass(relativePath);
+            }
+        }
+        throw new IllegalArgumentException(format("Unable to find source java class for '%s'. The source file '%s' was not found in source dirs: '%s'",
+                className, relativePath, sourceDirs));
     }
 }
