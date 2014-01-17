@@ -112,4 +112,28 @@ class TrueIncrementalJavaCompilationIntegrationTest extends AbstractIntegrationS
         anotherImplTime != anotherImplTime2
         personTime == personTime2
     }
+
+    def "is sensitive to class deletion"() {
+        when:
+        run "compileJava"
+        def personTime = file("build/classes/main/Person.class").lastModified()
+        def anotherImplTime = file("build/classes/main/AnotherPersonImpl.class").lastModified()
+
+        and:
+        assert file("src/main/java/PersonImpl.java").delete()
+        file("src/main/java/AnotherPersonImpl.java").text = """public class AnotherPersonImpl implements Person {
+            public String getName() { return "Hans"; }
+        }"""
+
+        and:
+        sleep(1000)
+        run "compileJava"
+        def personTime2 = file("build/classes/main/Person.class").lastModified()
+        def anotherImplTime2 = file("build/classes/main/AnotherPersonImpl.class").lastModified()
+
+        then:
+        !file("build/classes/main/PersonImpl.class").exists()
+        anotherImplTime != anotherImplTime2
+        personTime == personTime2
+    }
 }

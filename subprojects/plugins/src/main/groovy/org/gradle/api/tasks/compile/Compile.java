@@ -17,11 +17,13 @@
 package org.gradle.api.tasks.compile;
 
 import org.gradle.api.AntBuilder;
+import org.gradle.api.file.SourceDirectorySet;
 import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.api.internal.tasks.compile.Compiler;
 import org.gradle.api.internal.tasks.compile.*;
 import org.gradle.api.internal.tasks.compile.daemon.CompilerDaemonManager;
 import org.gradle.api.internal.tasks.compile.incremental.SelectiveCompilation;
+import org.gradle.api.internal.tasks.compile.incremental.SelectiveJavaCompiler;
 import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
@@ -31,6 +33,7 @@ import org.gradle.internal.Factory;
 import org.gradle.util.DeprecationLogger;
 
 import java.io.File;
+import java.util.Set;
 
 /**
  * Compiles Java source files.
@@ -42,6 +45,7 @@ public class Compile extends AbstractCompile {
     private Compiler<JavaCompileSpec> javaCompiler;
     private File dependencyCacheDir;
     private final CompileOptions compileOptions = new CompileOptions();
+    private Set<File> sourceDirs;
 
     public Compile() {
         if (!(this instanceof JavaCompile)) {
@@ -52,13 +56,14 @@ public class Compile extends AbstractCompile {
         ProjectInternal projectInternal = (ProjectInternal) getProject();
         CompilerDaemonManager compilerDaemonManager = getServices().get(CompilerDaemonManager.class);
         JavaCompilerFactory defaultCompilerFactory = new DefaultJavaCompilerFactory(projectInternal, antBuilderFactory, inProcessCompilerFactory, compilerDaemonManager);
-        Compiler<JavaCompileSpec> delegatingCompiler = new DelegatingJavaCompiler(defaultCompilerFactory);
-        javaCompiler = new IncrementalJavaCompiler(delegatingCompiler, antBuilderFactory, getOutputs());
+        javaCompiler = new DelegatingJavaCompiler(defaultCompilerFactory);
     }
 
     @TaskAction
     protected void compile(IncrementalTaskInputs inputs) {
-        SelectiveCompilation selectiveCompilation = new SelectiveCompilation(inputs, getSource(), getClasspath(), getDestinationDir(), getClassTreeCache());
+        SelectiveJavaCompiler compiler = new SelectiveJavaCompiler(javaCompiler);
+        SelectiveCompilation selectiveCompilation = new SelectiveCompilation(inputs, getSource(), getClasspath(), getDestinationDir(),
+                getClassTreeCache(), compiler, sourceDirs);
 
         DefaultJavaCompileSpec spec = new DefaultJavaCompileSpec();
         spec.setSource(selectiveCompilation.getSource());
@@ -68,7 +73,7 @@ public class Compile extends AbstractCompile {
         spec.setSourceCompatibility(getSourceCompatibility());
         spec.setTargetCompatibility(getTargetCompatibility());
         spec.setCompileOptions(compileOptions);
-        WorkResult result = javaCompiler.execute(spec);
+        WorkResult result = compiler.execute(spec);
         setDidWork(result.getDidWork());
         selectiveCompilation.compilationComplete();
     }
@@ -102,5 +107,10 @@ public class Compile extends AbstractCompile {
 
     public void setJavaCompiler(Compiler<JavaCompileSpec> javaCompiler) {
         this.javaCompiler = javaCompiler;
+    }
+
+    public void setSource(SourceDirectorySet source) {
+        this.sourceDirs = source.getSrcDirs(); //so that we can infer the input class -> output class mapping. This is very naive.
+        super.setSource(source);
     }
 }

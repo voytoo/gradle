@@ -9,6 +9,7 @@ import org.gradle.api.tasks.incremental.InputFileDetails;
 import org.gradle.api.tasks.util.PatternSet;
 
 import java.io.File;
+import java.util.Set;
 
 /**
  * by Szczepan Faber, created at: 1/16/14
@@ -19,7 +20,8 @@ public class SelectiveCompilation {
     private final File compileDestination;
     private final File classTreeCache;
 
-    public SelectiveCompilation(IncrementalTaskInputs inputs, FileTree source, FileCollection compileClasspath, File compileDestination, File classTreeCache) {
+    public SelectiveCompilation(IncrementalTaskInputs inputs, FileTree source, FileCollection compileClasspath, final File compileDestination,
+                                File classTreeCache, final SelectiveJavaCompiler compiler, final Set<File> sourceDirs) {
         this.compileDestination = compileDestination;
         this.classTreeCache = classTreeCache;
         if (inputs.isIncremental()) {
@@ -33,13 +35,19 @@ public class SelectiveCompilation {
                 public void execute(InputFileDetails inputFileDetails) {
                     String name = inputFileDetails.getFile().getName();
                     if (name.endsWith(".java")) {
-                        //hacky, below works only when classe are not in packages
                         changedSourceOnly.include(name);
                         Iterable<String> dependents = tree.getActualDependents(inputFileDetails.getFile().getName().replaceAll(".java", ""));
                         for (String d : dependents) {
+                            //compiler.ensureRefreshed(d); //todo
                             changedSourceOnly.include(d + ".java");
                         }
                     }
+                }
+            });
+            inputs.removed(new Action<InputFileDetails>() {
+                final InputOutputMapper mapper = new InputOutputMapper(sourceDirs, compileDestination);
+                public void execute(InputFileDetails inputFileDetails) {
+                    compiler.ensureRefreshed(mapper.toOutputFile(inputFileDetails.getFile()));
                 }
             });
             //since we're compiling selectively we need to include the classes compiled previously
