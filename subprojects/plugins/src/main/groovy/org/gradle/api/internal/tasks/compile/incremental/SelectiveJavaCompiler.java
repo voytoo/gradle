@@ -13,20 +13,24 @@ import java.util.List;
  */
 public class SelectiveJavaCompiler implements Compiler<JavaCompileSpec> {
     private Compiler<JavaCompileSpec> compiler;
-    private List<File> deleteMe = new LinkedList<File>();
+    private List<File> staleClasses = new LinkedList<File>();
 
     public SelectiveJavaCompiler(Compiler<JavaCompileSpec> compiler) {
         this.compiler = compiler;
     }
 
     public WorkResult execute(JavaCompileSpec spec) {
-        for (File file : deleteMe) {
+        for (File file : staleClasses) {
             file.delete();
         }
         return compiler.execute(spec);
     }
 
-    public void ensureRefreshed(File file) {
-        deleteMe.add(file);
+    public void addStaleClass(File file) {
+        staleClasses.add(file);
+    }
+
+    public List<File> getStaleClasses() {
+        return staleClasses;
     }
 }

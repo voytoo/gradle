@@ -33,7 +33,6 @@ import org.gradle.internal.Factory;
 import org.gradle.util.DeprecationLogger;
 
 import java.io.File;
-import java.util.Set;
 
 /**
  * Compiles Java source files.
@@ -45,7 +44,7 @@ public class Compile extends AbstractCompile {
     private Compiler<JavaCompileSpec> javaCompiler;
     private File dependencyCacheDir;
     private final CompileOptions compileOptions = new CompileOptions();
-    private Set<File> sourceDirs;
+    private SourceDirectorySet sourceDirs;
 
     public Compile() {
         if (!(this instanceof JavaCompile)) {
@@ -61,9 +60,10 @@ public class Compile extends AbstractCompile {
 
     @TaskAction
     protected void compile(IncrementalTaskInputs inputs) {
+        getLogger().lifecycle("{} uses incremental compiler hack", getPath());
         SelectiveJavaCompiler compiler = new SelectiveJavaCompiler(javaCompiler);
         SelectiveCompilation selectiveCompilation = new SelectiveCompilation(inputs, getSource(), getClasspath(), getDestinationDir(),
-                getClassTreeCache(), compiler, sourceDirs);
+                getClassTreeCache(), compiler, sourceDirs.getSrcDirs());
 
         DefaultJavaCompileSpec spec = new DefaultJavaCompileSpec();
         spec.setSource(selectiveCompilation.getSource());
@@ -110,7 +110,7 @@ public class Compile extends AbstractCompile {
     }
 
     public void setSource(SourceDirectorySet source) {
-        this.sourceDirs = source.getSrcDirs(); //so that we can infer the input class -> output class mapping. This is very naive.
+        this.sourceDirs = source;
         super.setSource(source);
     }
 }
