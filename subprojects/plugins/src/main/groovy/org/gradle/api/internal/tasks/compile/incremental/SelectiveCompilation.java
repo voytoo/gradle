@@ -38,10 +38,11 @@ public class SelectiveCompilation {
                     String name = inputFileDetails.getFile().getName();
                     if (name.endsWith(".java")) {
                         JavaSourceClass source = mapper.toJavaSourceClass(inputFileDetails.getFile());
+                        compiler.ensureRefreshed(source.getOutputFile());
                         changedSourceOnly.include(source.getRelativePath());
                         Iterable<String> dependents = tree.getActualDependents(source.getClassName());
                         for (String d : dependents) {
-                            //compiler.ensureRefreshed(d); //todo
+                            compiler.ensureRefreshed(source.getOutputFile());
                             changedSourceOnly.include(mapper.toJavaSourceClass(d).getRelativePath());
                         }
                     }
@@ -49,7 +50,7 @@ public class SelectiveCompilation {
             });
             inputs.removed(new Action<InputFileDetails>() {
                 public void execute(InputFileDetails inputFileDetails) {
-                    compiler.ensureRefreshed(mapper.toOutputFile(inputFileDetails.getFile()));
+                    compiler.ensureRefreshed(mapper.toJavaSourceClass(inputFileDetails.getFile()).getOutputFile());
                 }
             });
             //since we're compiling selectively we need to include the classes compiled previously

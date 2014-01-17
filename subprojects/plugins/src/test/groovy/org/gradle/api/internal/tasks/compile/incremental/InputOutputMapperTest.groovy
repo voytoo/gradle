@@ -13,26 +13,6 @@ class InputOutputMapperTest extends Specification {
     @Rule TestNameTestDirectoryProvider temp = new TestNameTestDirectoryProvider()
     @Subject mapper = new InputOutputMapper([temp.file("src/main/java"), temp.file("src/main/java2")], temp.file("out"))
 
-    def "knows input output mapping"() {
-        expect:
-        mapper.toOutputFile(temp.file("src/main/java/Foo.java")) == temp.file("out/Foo.class")
-        mapper.toOutputFile(temp.file("src/main/java/org/bar/Bar.java")) == temp.file("out/org/bar/Bar.class")
-        mapper.toOutputFile(temp.file("src/main/java2/com/Com.java")) == temp.file("out/com/Com.class")
-
-        when: mapper.toOutputFile(temp.file("src/main/unknown/Xxx.java"))
-        then: thrown(IllegalArgumentException)
-    }
-
-    def "knows java source class name"() {
-        expect:
-        mapper.toJavaSourceClass(temp.file("src/main/java/Foo.java")).className == "Foo"
-        mapper.toJavaSourceClass(temp.file("src/main/java/org/bar/Bar.java")).className == "org.bar.Bar"
-        mapper.toJavaSourceClass(temp.file("src/main/java2/com/Com.java")).className == "com.Com"
-
-        when: mapper.toJavaSourceClass(temp.file("src/main/unknown/Xxx.java"))
-        then: thrown(IllegalArgumentException)
-    }
-
     def "knows java source class relative path"() {
         expect:
         mapper.toJavaSourceClass(temp.file("src/main/java/Foo.java")).relativePath == "Foo.java"

@@ -19,16 +19,12 @@ public class InputOutputMapper {
         this.compileDestination = compileDestination;
     }
 
-    public File toOutputFile(File javaSourceClass) {
-        return new File(compileDestination, toJavaSourceClass(javaSourceClass).getRelativePath().replaceAll("\\.java$", ".class"));
-    }
-
     public JavaSourceClass toJavaSourceClass(File javaSourceClass) {
         for (File sourceDir : sourceDirs) {
             if (javaSourceClass.getAbsolutePath().startsWith(sourceDir.getAbsolutePath())) { //perf tweak only
                 String relativePath = GFileUtils.relativePath(sourceDir, javaSourceClass);
                 if (!relativePath.startsWith("..")) {
-                    return new JavaSourceClass(relativePath);
+                    return new JavaSourceClass(relativePath, compileDestination);
                 }
             }
         }
@@ -41,7 +37,7 @@ public class InputOutputMapper {
         String relativePath = className.replaceAll("\\.", "/").concat(".java");
         for (File sourceDir : sourceDirs) {
             if (new File(sourceDir, relativePath).isFile()) {
-                return new JavaSourceClass(relativePath);
+                return new JavaSourceClass(relativePath, compileDestination);
             }
         }
         throw new IllegalArgumentException(format("Unable to find source java class for '%s'. The source file '%s' was not found in source dirs: '%s'",
