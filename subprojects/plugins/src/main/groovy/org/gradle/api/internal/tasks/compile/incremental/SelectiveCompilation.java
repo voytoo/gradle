@@ -47,8 +47,9 @@ public class SelectiveCompilation {
                         changedSourceOnly.include(source.getRelativePath());
                         Iterable<String> dependents = tree.getActualDependents(source.getClassName());
                         for (String d : dependents) {
-                            compiler.addStaleClass(source.getOutputFile());
-                            changedSourceOnly.include(mapper.toJavaSourceClass(d).getRelativePath());
+                            JavaSourceClass dSource = mapper.toJavaSourceClass(d);
+                            compiler.addStaleClass(dSource.getOutputFile());
+                            changedSourceOnly.include(dSource.getRelativePath());
                         }
                     }
                 }
@@ -60,7 +61,7 @@ public class SelectiveCompilation {
             });
             //since we're compiling selectively we need to include the classes compiled previously
             this.classpath = compileClasspath.plus(new SimpleFileCollection(compileDestination));
-            LOG.lifecycle("Stale classes detection completed in {}. {} class files need recompilation. Full list: {}", clock.getTime(), compiler.getStaleClasses().size(), compiler.getStaleClasses());
+            LOG.lifecycle("Stale classes detection completed in {}. {} class files need recompilation. Compile include patterns: {}, Files to delete: {}", clock.getTime(), compiler.getStaleClasses().size(), changedSourceOnly.getIncludes(), compiler.getStaleClasses());
         } else {
             this.source = source;
             this.classpath = compileClasspath;

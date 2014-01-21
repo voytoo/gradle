@@ -30,6 +30,7 @@ import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.WorkResult;
 import org.gradle.api.tasks.incremental.IncrementalTaskInputs;
 import org.gradle.internal.Factory;
+import org.gradle.util.Clock;
 import org.gradle.util.DeprecationLogger;
 
 import java.io.File;
@@ -73,8 +74,10 @@ public class Compile extends AbstractCompile {
         spec.setSourceCompatibility(getSourceCompatibility());
         spec.setTargetCompatibility(getTargetCompatibility());
         spec.setCompileOptions(compileOptions);
+        Clock clock = new Clock();
         WorkResult result = compiler.execute(spec);
         setDidWork(result.getDidWork());
+        getLogger().lifecycle(getPath() + " - compilation took " + clock.getTime());
         selectiveCompilation.compilationComplete();
     }
 

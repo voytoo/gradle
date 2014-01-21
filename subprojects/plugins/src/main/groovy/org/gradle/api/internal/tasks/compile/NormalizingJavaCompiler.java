@@ -24,6 +24,7 @@ import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.WorkResult;
+import org.gradle.util.Clock;
 import org.gradle.util.CollectionUtils;
 
 import java.io.File;
@@ -52,6 +53,7 @@ public class NormalizingJavaCompiler implements Compiler<JavaCompileSpec> {
     private void resolveAndFilterSourceFiles(JavaCompileSpec spec) {
         // this mimics the behavior of the Ant javac task (and therefore AntJavaCompiler),
         // which silently excludes files not ending in .java
+        Clock clock = new Clock();
         FileCollection javaOnly = spec.getSource().filter(new Spec<File>() {
             public boolean isSatisfiedBy(File element) {
                 return element.getName().endsWith(".java");
@@ -59,6 +61,7 @@ public class NormalizingJavaCompiler implements Compiler<JavaCompileSpec> {
         });
 
         spec.setSource(new SimpleFileCollection(javaOnly.getFiles()));
+        LOGGER.lifecycle("Source normalisation (files: {}) took {}", spec.getSource().getFiles().size(), clock.getTime());
     }
 
     private void resolveClasspath(JavaCompileSpec spec) {
