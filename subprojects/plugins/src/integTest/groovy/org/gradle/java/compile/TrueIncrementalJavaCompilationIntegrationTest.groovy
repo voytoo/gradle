@@ -23,7 +23,11 @@ class TrueIncrementalJavaCompilationIntegrationTest extends AbstractIntegrationS
         }"""
         file("src/main/java/org/AnotherPersonImpl.java") << """package org;
         public class AnotherPersonImpl extends PersonImpl {
-            public String getName() { return "Szczepan Faber"; }
+            public String getName() { return "Szczepan Faber " + WithConst.X; }
+        }"""
+        file("src/main/java/org/WithConst.java") << """package org;
+        public class WithConst {
+            final static int X = 100;
         }"""
     }
 
@@ -143,5 +147,28 @@ class TrueIncrementalJavaCompilationIntegrationTest extends AbstractIntegrationS
         !file("build/classes/main/org/PersonImpl.class").exists()
         anotherImplTime != anotherImplTime2
         personTime == personTime2
+    }
+
+    def "is sensitive to inlined constants"() {
+        when:
+        run "compileJava"
+        def withConstTime = file("build/classes/main/org/WithConst.class").lastModified()
+        def anotherImplTime = file("build/classes/main/org/AnotherPersonImpl.class").lastModified()
+
+        and:
+        file("src/main/java/org/WithConst.java").text = """package org;
+        public class WithConst {
+            static final int X = 20;
+        }"""
+
+        and:
+        sleep(1000)
+        run "compileJava"
+        def withConstTime2 = file("build/classes/main/org/WithConst.class").lastModified()
+        def anotherImplTime2 = file("build/classes/main/org/AnotherPersonImpl.class").lastModified()
+
+        then:
+        withConstTime != withConstTime2
+        anotherImplTime != anotherImplTime2
     }
 }

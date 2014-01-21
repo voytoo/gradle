@@ -74,12 +74,12 @@ public class ClassDependencyTree implements Serializable {
         }
     }
 
-    public Set<String> getActualDependents(String className) {
+    public ClassDependents getActualDependents(String className) {
         Set<String> out = new HashSet<String>();
         Set<String> visited = new HashSet<String>();
         recurseDependents(visited, out, className);
         out.remove(className);
-        return out;
+        return new ClassDependents(out);
     }
 
     private void recurseDependents(Set<String> visited, Collection<String> accumulator, String className) {

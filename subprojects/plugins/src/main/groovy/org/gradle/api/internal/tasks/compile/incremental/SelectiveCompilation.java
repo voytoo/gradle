@@ -45,7 +45,7 @@ public class SelectiveCompilation {
                         JavaSourceClass source = mapper.toJavaSourceClass(inputFileDetails.getFile());
                         compiler.addStaleClass(source.getOutputFile());
                         changedSourceOnly.include(source.getRelativePath());
-                        Iterable<String> dependents = tree.getActualDependents(source.getClassName());
+                        Iterable<String> dependents = tree.getActualDependents(source.getClassName()).getDependentClasses();
                         for (String d : dependents) {
                             JavaSourceClass dSource = mapper.toJavaSourceClass(d);
                             compiler.addStaleClass(dSource.getOutputFile());
