@@ -1,5 +1,7 @@
-package org.gradle.api.internal.tasks.compile.incremental
+package org.gradle.api.internal.tasks.compile.incremental.analyzer
 
+import org.gradle.api.internal.tasks.compile.incremental.analyzer.ClassDependenciesAnalyzer
+import org.gradle.api.internal.tasks.compile.incremental.analyzer.SomeClass
 import spock.lang.Specification
 import spock.lang.Subject
 
@@ -24,7 +26,7 @@ class ClassDependenciesAnalyzerTest extends Specification {
         expect:
         deps.contains(Specification.class.name)
         deps.contains(InputStream.class.name)
-        //deps.contains(ClassDependenciesAnalyzer.class.name) why this does not work?
+        //deps.contains(ClassDependenciesAnalyzer.class.name) // why this does not work (is it because of groovy)?
     }
 
     InputStream classStream(Class aClass) {

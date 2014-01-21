@@ -3,6 +3,7 @@ package org.gradle.api.internal.tasks.compile.incremental;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 import org.apache.commons.io.FileUtils;
+import org.gradle.api.internal.tasks.compile.incremental.analyzer.ClassDependenciesAnalyzer;
 
 import java.io.*;
 import java.util.*;

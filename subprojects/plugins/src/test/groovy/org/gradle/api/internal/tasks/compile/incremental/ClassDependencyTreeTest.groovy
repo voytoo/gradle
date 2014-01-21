@@ -1,5 +1,9 @@
 package org.gradle.api.internal.tasks.compile.incremental
 
+import org.gradle.api.internal.tasks.compile.incremental.analyzer.AccessedFromPrivateClass
+import org.gradle.api.internal.tasks.compile.incremental.analyzer.SomeClass
+import org.gradle.api.internal.tasks.compile.incremental.analyzer.SomeOtherClass
+import org.gradle.api.internal.tasks.compile.incremental.analyzer.YetAnotherClass
 import spock.lang.Specification
 
 /**

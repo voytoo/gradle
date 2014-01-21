@@ -1,4 +1,4 @@
-package org.gradle.api.internal.tasks.compile.incremental;
+package org.gradle.api.internal.tasks.compile.incremental.analyzer;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Type;
