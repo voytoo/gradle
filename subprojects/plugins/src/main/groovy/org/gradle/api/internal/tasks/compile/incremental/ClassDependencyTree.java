@@ -3,6 +3,7 @@ package org.gradle.api.internal.tasks.compile.incremental;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 import org.apache.commons.io.FileUtils;
+import org.gradle.api.internal.tasks.compile.incremental.analyzer.ClassAnalysis;
 import org.gradle.api.internal.tasks.compile.incremental.analyzer.ClassDependenciesAnalyzer;
 
 import java.io.*;
@@ -25,12 +26,14 @@ public class ClassDependencyTree implements Serializable {
         while (output.hasNext()) {
             File classFile = (File) output.next();
             try {
-                Collection<String> classesUsed = new ClassDependenciesAnalyzer().getClassesUsedBy(classFile);
+                ClassAnalysis analysis = new ClassDependenciesAnalyzer().getClassAnalysis(classFile);
                 String className = nameProvider.provideName(classFile);
-                classes.add(className);
-                for (String dependency : classesUsed) {
-                    if (!dependency.equals(className)) {
-                        allDependents.put(dependency, className);
+                if (analysis.getClassDependencies() != null) {
+                    classes.add(className);
+                    for (String dependency : analysis.getClassDependencies()) {
+                        if (!dependency.equals(className)) {
+                            allDependents.put(dependency, className);
+                        }
                     }
                 }
             } catch (IOException e) {
