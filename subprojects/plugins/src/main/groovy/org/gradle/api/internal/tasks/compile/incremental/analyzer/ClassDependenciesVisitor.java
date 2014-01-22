@@ -17,9 +17,6 @@ public class ClassDependenciesVisitor extends ClassVisitor {
 
     @Override
     public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
-        if (containsNonPrivateConstant) {
-            return null; //it already has a non-private const, no point of further visiting
-        }
         if (isConstant(access) && !isPrivate(access)) {
             containsNonPrivateConstant = true; //non-private const
         }

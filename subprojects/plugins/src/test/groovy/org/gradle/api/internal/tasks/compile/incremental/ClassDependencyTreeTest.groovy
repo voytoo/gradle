@@ -1,8 +1,11 @@
 package org.gradle.api.internal.tasks.compile.incremental
 
 import org.gradle.api.internal.tasks.compile.incremental.analyzer.AccessedFromPrivateClass
+import org.gradle.api.internal.tasks.compile.incremental.analyzer.HasNonPrivateConstants
+import org.gradle.api.internal.tasks.compile.incremental.analyzer.HasPrivateConstants
 import org.gradle.api.internal.tasks.compile.incremental.analyzer.SomeClass
 import org.gradle.api.internal.tasks.compile.incremental.analyzer.SomeOtherClass
+import org.gradle.api.internal.tasks.compile.incremental.analyzer.UsedByNonPrivateConstantsClass
 import org.gradle.api.internal.tasks.compile.incremental.analyzer.YetAnotherClass
 import spock.lang.Specification
 
@@ -12,11 +15,14 @@ import spock.lang.Specification
 class ClassDependencyTreeTest extends Specification {
 
     def "knows recursive dependency tree"() {
-        def tree = new ClassDependencyTree(new File(ClassDependencyTreeTest.classLoader.getResource("").toURI()))
+        def tree = new ClassDependencyTree(new File(ClassDependencyTreeTest.classLoader.getResource("").toURI()), "org.gradle.api.internal.tasks.compile.incremental")
         expect:
-        tree.getActualDependents(SomeClass.name).getDependentClasses() == [SomeOtherClass.name] as Set
-        tree.getActualDependents(SomeOtherClass.name).getDependentClasses() == [] as Set
-        tree.getActualDependents(YetAnotherClass.name).getDependentClasses() == [SomeOtherClass.name] as Set
-        tree.getActualDependents(AccessedFromPrivateClass.name).getDependentClasses() == [SomeClass.name, SomeOtherClass.name] as Set
+        tree.getActualDependents(SomeClass.name) == [SomeOtherClass.name] as Set
+        tree.getActualDependents(SomeOtherClass.name) == [] as Set
+        tree.getActualDependents(YetAnotherClass.name) == [SomeOtherClass.name] as Set
+        tree.getActualDependents(AccessedFromPrivateClass.name) == [SomeClass.name, SomeOtherClass.name] as Set
+        tree.getActualDependents(HasPrivateConstants.name) == [] as Set
+        tree.getActualDependents(HasNonPrivateConstants.name) == null
+        tree.getActualDependents(UsedByNonPrivateConstantsClass.name) == null
     }
 }

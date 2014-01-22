@@ -17,19 +17,16 @@ import java.util.List;
  */
 public class ClassDependenciesAnalyzer {
 
-    public ClassAnalysis getClassAnalysis(InputStream input) throws IOException {
+    public ClassAnalysis getClassAnalysis(String className, InputStream input) throws IOException {
         ClassReader reader = new ClassReader(input);
         ClassDependenciesVisitor visitor = new ClassDependenciesVisitor();
         reader.accept(visitor, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
 
-        if (visitor.containsNonPrivateConstant) {
-            return new ClassAnalysis(null);
-        } else {
-            return new ClassAnalysis(getClassDependencies(reader));
-        }
+        List<String> classDependencies = getClassDependencies(className, reader);
+        return new ClassAnalysis(classDependencies, visitor.containsNonPrivateConstant);
     }
 
-    private List<String> getClassDependencies(ClassReader reader) {
+    private List<String> getClassDependencies(String className, ClassReader reader) {
         List<String> out = new LinkedList<String>();
         char[] charBuffer = new char[reader.getMaxStringLength()];
         for (int i = 1; i < reader.getItemCount(); i++) {
@@ -46,7 +43,7 @@ public class ClassDependenciesAnalyzer {
                     continue;
                 }
                 String name = type.getClassName();
-                if (!name.startsWith("java.lang")) { //let's filter out the sdk
+                if (!name.startsWith("java.") && !name.equals(className)) { //let's filter out the sdk and self
                     out.add(name);
                 }
             }
@@ -54,10 +51,10 @@ public class ClassDependenciesAnalyzer {
         return out;
     }
 
-    public ClassAnalysis getClassAnalysis(File classFile) throws IOException {
+    public ClassAnalysis getClassAnalysis(String className, File classFile) throws IOException {
         FileInputStream input = new FileInputStream(classFile);
         try {
-            return getClassAnalysis(input);
+            return getClassAnalysis(className, input);
         } finally {
             input.close();
         }

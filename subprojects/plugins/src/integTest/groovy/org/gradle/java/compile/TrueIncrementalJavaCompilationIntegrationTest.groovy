@@ -82,7 +82,7 @@ class TrueIncrementalJavaCompilationIntegrationTest extends AbstractIntegrationS
         def implTime = file("build/classes/main/org/PersonImpl.class").lastModified()
 
         and:
-        file("src/main/java/PersonImpl.java").text = """package org;
+        file("src/main/java/org/PersonImpl.java").text = """package org;
         public class PersonImpl implements Person {
             public String getName() { return "Hans"; }
         }"""

@@ -11,30 +11,29 @@ class ClassDependenciesAnalyzerTest extends Specification {
     @Subject analyzer = new ClassDependenciesAnalyzer()
 
     def "knows dependencies of a java class"() {
-        def deps = analyzer.getClassAnalysis(classStream(SomeClass.class)).classDependencies
+        def deps = analyzer.getClassAnalysis(SomeOtherClass.name, classStream(SomeOtherClass)).classDependencies
         expect:
-        println deps
-        [Set.name, HashSet.name, List.name, LinkedList.name, String.name, Integer.name, SomeClass.name + '$Foo'].each {
-            deps.contains(it)
-        }
+        deps == [YetAnotherClass.name, SomeClass.name]
     }
 
     def "knows basic class dependencies of a groovy class"() {
-        def deps = analyzer.getClassAnalysis(classStream(ClassDependenciesAnalyzerTest.class)).classDependencies
+        def deps = analyzer.getClassAnalysis(ClassDependenciesAnalyzerTest.name, classStream(ClassDependenciesAnalyzerTest)).classDependencies
 
         expect:
         deps.contains(Specification.class.name)
-        deps.contains(InputStream.class.name)
         //deps.contains(ClassDependenciesAnalyzer.class.name) // why this does not work (is it because of groovy)?
     }
 
     def "knows if a class have non-private constants"() {
         expect:
-        analyzer.getClassAnalysis(classStream(HasNonPrivateConstants)).getClassDependencies() == null
+        analyzer.getClassAnalysis(HasNonPrivateConstants.name, classStream(HasNonPrivateConstants)).getClassDependencies() == [UsedByNonPrivateConstantsClass.name]
+        analyzer.getClassAnalysis(HasNonPrivateConstants.name, classStream(HasNonPrivateConstants)).dependentToAll
 
-        analyzer.getClassAnalysis(classStream(HasPublicConstants)).getClassDependencies() == null
+        analyzer.getClassAnalysis(HasPublicConstants.name, classStream(HasPublicConstants)).getClassDependencies() == []
+        analyzer.getClassAnalysis(HasPublicConstants.name, classStream(HasPublicConstants)).dependentToAll
 
-        analyzer.getClassAnalysis(classStream(HasPrivateConstants)).getClassDependencies() == [HasNonPrivateConstants.name, HasPrivateConstants.name]
+        analyzer.getClassAnalysis(HasPrivateConstants.name, classStream(HasPrivateConstants)).getClassDependencies() == [HasNonPrivateConstants.name]
+        !analyzer.getClassAnalysis(HasPrivateConstants.name, classStream(HasPrivateConstants)).dependentToAll
     }
 
     def "knows if a class is a source annotation"() {
