@@ -131,4 +131,29 @@ class TrueIncrementalJavaCompilationIntegrationTest extends AbstractIntegrationS
         unchangedFiles.empty
         changedFiles.containsAll(['WithConst', 'AnotherPersonImpl', 'PersonImpl', 'Person'])
     }
+
+    def "is sensitive to source annotations"() {
+        file("src/main/java/org/ClassAnnotation.java").text = """package org; import java.lang.annotation.*;
+            @Retention(RetentionPolicy.RUNTIME) public @interface ClassAnnotation {}
+        """
+        file("src/main/java/org/SourceAnnotation.java").text = """package org; import java.lang.annotation.*;
+            @Retention(RetentionPolicy.SOURCE) public @interface SourceAnnotation {}
+        """
+        file("src/main/java/org/UsesClassAnnotation.java").text = """package org;
+            @ClassAnnotation public class UsesClassAnnotation {}
+        """
+        file("src/main/java/org/UsesSourceAnnotation.java").text = """package org;
+            @SourceAnnotation public class UsesSourceAnnotation {}
+        """
+
+        run "compileJava"
+
+        file("src/main/java/org/ClassAnnotation.java").text = """package org; import java.lang.annotation.*;
+            @Retention(RetentionPolicy.RUNTIME) public @interface ClassAnnotation {
+                String foo();
+            }"""
+
+        when: run "compileJava"
+        then: changedFiles == ['ClassAnnotation', 'UsesClassAnnotation']
+    }
 }
