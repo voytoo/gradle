@@ -1,14 +1,12 @@
 package org.gradle.api.internal.tasks.compile.incremental.analyzer;
 
 import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Type;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -18,15 +16,17 @@ import java.util.List;
 public class ClassDependenciesAnalyzer {
 
     public ClassAnalysis getClassAnalysis(String className, InputStream input) throws IOException {
+        ClassRelevancyFilter filter = new ClassRelevancyFilter(className);
         ClassReader reader = new ClassReader(input);
-        ClassDependenciesVisitor visitor = new ClassDependenciesVisitor();
+        ClassDependenciesVisitor visitor = new ClassDependenciesVisitor(filter);
         reader.accept(visitor, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
 
-        List<String> classDependencies = getClassDependencies(className, reader);
-        return new ClassAnalysis(classDependencies, visitor.containsNonPrivateConstant);
+        List<String> classDependencies = getClassDependencies(filter, reader);
+        classDependencies.addAll(visitor.annotations);
+        return new ClassAnalysis(classDependencies, visitor.dependentToAll);
     }
 
-    private List<String> getClassDependencies(String className, ClassReader reader) {
+    private List<String> getClassDependencies(ClassRelevancyFilter filter, ClassReader reader) {
         List<String> out = new LinkedList<String>();
         char[] charBuffer = new char[reader.getMaxStringLength()];
         for (int i = 1; i < reader.getItemCount(); i++) {
@@ -43,7 +43,7 @@ public class ClassDependenciesAnalyzer {
                     continue;
                 }
                 String name = type.getClassName();
-                if (!name.startsWith("java.") && !name.equals(className)) { //let's filter out the sdk and self
+                if (filter.isRelevant(name)) {
                     out.add(name);
                 }
             }

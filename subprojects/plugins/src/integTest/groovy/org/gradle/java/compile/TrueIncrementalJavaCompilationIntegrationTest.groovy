@@ -145,15 +145,17 @@ class TrueIncrementalJavaCompilationIntegrationTest extends AbstractIntegrationS
         file("src/main/java/org/UsesSourceAnnotation.java").text = """package org;
             @SourceAnnotation public class UsesSourceAnnotation {}
         """
-
         run "compileJava"
 
         file("src/main/java/org/ClassAnnotation.java").text = """package org; import java.lang.annotation.*;
             @Retention(RetentionPolicy.RUNTIME) public @interface ClassAnnotation {
-                String foo();
+                String foo() default "foo";
             }"""
 
         when: run "compileJava"
-        then: changedFiles == ['ClassAnnotation', 'UsesClassAnnotation']
+
+        then:
+        unchangedFiles.empty
+        changedFiles.containsAll(['WithConst', 'AnotherPersonImpl', 'PersonImpl', 'Person'])
     }
 }

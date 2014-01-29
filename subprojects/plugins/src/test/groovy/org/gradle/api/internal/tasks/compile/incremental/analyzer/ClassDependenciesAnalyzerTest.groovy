@@ -43,13 +43,13 @@ class ClassDependenciesAnalyzerTest extends Specification {
         expect:
         analyze(UsesRuntimeAnnotation).classDependencies == [SomeRuntimeAnnotation.name]
         analyze(SomeRuntimeAnnotation).classDependencies == []
-        !analyze(SomeRuntimeAnnotation).dependentToAll
+        analyze(SomeRuntimeAnnotation).dependentToAll
 
         analyze(UsesClassAnnotation).classDependencies == [SomeClassAnnotation.name]
         analyze(SomeClassAnnotation).classDependencies == []
-        !analyze(SomeClassAnnotation).dependentToAll
+        analyze(SomeClassAnnotation).dependentToAll
 
-        analyze(UsesSourceAnnotation).classDependencies == [SomeSourceAnnotation.name]
+        analyze(UsesSourceAnnotation).classDependencies == [] //source annotations are wiped from the bytecode
         analyze(SomeSourceAnnotation).classDependencies == []
         analyze(SomeSourceAnnotation).dependentToAll
     }

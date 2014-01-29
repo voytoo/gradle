@@ -7,11 +7,11 @@ import java.util.List;
  */
 public class ClassAnalysis {
     private final List<String> classDependencies;
-    private boolean containsNonPrivateConstant;
+    private boolean dependentToAll;
 
-    public ClassAnalysis(List<String> classDependencies, boolean containsNonPrivateConstant) {
+    public ClassAnalysis(List<String> classDependencies, boolean dependentToAll) {
         this.classDependencies = classDependencies;
-        this.containsNonPrivateConstant = containsNonPrivateConstant;
+        this.dependentToAll = dependentToAll;
     }
 
     public List<String> getClassDependencies() {
@@ -19,6 +19,6 @@ public class ClassAnalysis {
     }
 
     public boolean isDependentToAll() {
-        return containsNonPrivateConstant;
+        return dependentToAll;
     }
 }
