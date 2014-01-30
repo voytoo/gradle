@@ -1,5 +1,12 @@
 package org.gradle.api.internal.tasks.compile.incremental.analyzer
 
+import org.gradle.api.internal.tasks.compile.incremental.analyzer.annotations.SomeClassAnnotation
+import org.gradle.api.internal.tasks.compile.incremental.analyzer.annotations.SomeRuntimeAnnotation
+import org.gradle.api.internal.tasks.compile.incremental.analyzer.annotations.SomeSourceAnnotation
+import org.gradle.api.internal.tasks.compile.incremental.analyzer.annotations.UsesAnnotationInField
+import org.gradle.api.internal.tasks.compile.incremental.analyzer.annotations.UsesClassAnnotation
+import org.gradle.api.internal.tasks.compile.incremental.analyzer.annotations.UsesRuntimeAnnotation
+import org.gradle.api.internal.tasks.compile.incremental.analyzer.annotations.UsesSourceAnnotation
 import spock.lang.Specification
 import spock.lang.Subject
 
@@ -41,11 +48,11 @@ class ClassDependenciesAnalyzerTest extends Specification {
 
     def "knows if a class uses annotations"() {
         expect:
-        analyze(UsesRuntimeAnnotation).classDependencies == [SomeRuntimeAnnotation.name]
+        analyze(UsesRuntimeAnnotation).classDependencies == []
         analyze(SomeRuntimeAnnotation).classDependencies == []
         analyze(SomeRuntimeAnnotation).dependentToAll
 
-        analyze(UsesClassAnnotation).classDependencies == [SomeClassAnnotation.name]
+        analyze(UsesClassAnnotation).classDependencies == []
         analyze(SomeClassAnnotation).classDependencies == []
         analyze(SomeClassAnnotation).dependentToAll
 

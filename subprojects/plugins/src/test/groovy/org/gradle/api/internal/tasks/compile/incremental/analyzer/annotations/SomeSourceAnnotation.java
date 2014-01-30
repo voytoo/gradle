@@ -1,4 +1,4 @@
-package org.gradle.api.internal.tasks.compile.incremental.analyzer;
+package org.gradle.api.internal.tasks.compile.incremental.analyzer.annotations;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

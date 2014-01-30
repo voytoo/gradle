@@ -1,31 +1,19 @@
 package org.gradle.api.internal.tasks.compile.incremental.analyzer;
 
-import org.objectweb.asm.*;
-
-import java.util.HashSet;
-import java.util.Set;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.Opcodes;
 
 /**
  * by Szczepan Faber, created at: 1/21/14
  */
 public class ClassDependenciesVisitor extends ClassVisitor {
 
+    private final static int API = Opcodes.ASM4;
     boolean dependentToAll;
-    Set<String> annotations = new HashSet<String>();
-    private ClassRelevancyFilter filter;
 
-    public ClassDependenciesVisitor(ClassRelevancyFilter filter) {
-        super(Opcodes.ASM4);
-        this.filter = filter;
-    }
-
-    @Override
-    public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-        String annotationClassName = Type.getType(desc).getClassName();
-        if (filter.isRelevant(annotationClassName)) {
-            annotations.add(annotationClassName);
-        }
-        return null;
+    public ClassDependenciesVisitor() {
+        super(API);
     }
 
     @Override
@@ -37,11 +25,6 @@ public class ClassDependenciesVisitor extends ClassVisitor {
 
     private boolean isAnnotationType(String[] interfaces) {
         return interfaces.length == 1 && interfaces[0].equals("java/lang/annotation/Annotation");
-    }
-
-    @Override
-    public void visitAttribute(Attribute attr) {
-        super.visitAttribute(attr);    //To change body of overridden methods use File | Settings | File Templates.
     }
 
     @Override

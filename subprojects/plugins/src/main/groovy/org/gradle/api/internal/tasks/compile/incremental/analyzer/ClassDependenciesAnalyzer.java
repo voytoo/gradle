@@ -18,11 +18,10 @@ public class ClassDependenciesAnalyzer {
     public ClassAnalysis getClassAnalysis(String className, InputStream input) throws IOException {
         ClassRelevancyFilter filter = new ClassRelevancyFilter(className);
         ClassReader reader = new ClassReader(input);
-        ClassDependenciesVisitor visitor = new ClassDependenciesVisitor(filter);
+        ClassDependenciesVisitor visitor = new ClassDependenciesVisitor();
         reader.accept(visitor, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
 
         List<String> classDependencies = getClassDependencies(filter, reader);
-        classDependencies.addAll(visitor.annotations);
         return new ClassAnalysis(classDependencies, visitor.dependentToAll);
     }
 
