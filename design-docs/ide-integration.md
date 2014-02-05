@@ -30,6 +30,10 @@ model introduced by the new language plugins:
 - This is a breaking change. Previously, the reporting logic used to analyse the task dependency graph and treated any task which was not a dependency of some other task
   as a public task. This is very slow, requires every task in every project to be configured, and is not particularly accurate.
 
+#### Open issues
+
+- Split `gradle tasks` into 'what can I do with this build?' and a 'what are all the tasks in this project?'.
+
 ### GRADLE-2434 - IDE visualises and runs task selectors
 
 On the command-line I can run `gradle test` and this will find and execute all tasks with name `test` in the current project
@@ -45,9 +49,33 @@ On the command-line I can run `gradle tasks` and see the public tasks for the bu
 
 Expose some information to allow the IDE to visualise this.
 
-### Simplify task reporting logic
+See [tooling-api-improvements.md](tooling-api-improvements.md#expose-information-about-the-visibility-of-a-task)
 
-TBD
+### Simplify task visibility logic
+
+Change the task visibility logic introduced in the previous stories so that:
+
+- A task is public if its `group` attribute is not empty.
+- A task selector is public if any of the tasks that it selects are public.
+
+### Test cases
+
+- Tooling API and `gradle tasks` treats as public a task with a non-empty `group` attribute.
+- Tooling API and `gradle tasks` treats as public a selector that selects a public task.
+- Tooling API and `gradle tasks` treats as private a task with null `group` attribute.
+- Tooling API and `gradle tasks` treats as private a selector that selects only private tasks.
+
+### Expose the lifecycle tasks of build elements as public tasks
+
+Change the task visibility logic so that the lifecycle task of all `BuildableModelElement` objects are public, regardless of their group attribute.
+
+### Test cases
+
+- Tooling API and `gradle tasks` treats as public the lifecycle task of a `BuildableModelElement` with a null `group` attribute.
+
+#### Open issues
+
+- Should other tasks for a `BuildableModelElement` be private, regardless of group attribute?
 
 ## Feature - Tooling API client cancels an operation
 
@@ -56,7 +84,7 @@ Add some way for a tooling API client to request that an operation be cancelled.
 The implementation will do the same thing as if the daemon client is disconnected, which is to drop the daemon process.
 Later stories incrementally add more graceful cancellation handling.
 
-See [tooling-api-improvements.md](tooling-api-improvements.md#story-tooling-api-client-cancels-an-operation)
+See [tooling-api-improvements.md](tooling-api-improvements.md#story-tooling-api-client-cancels-a-long-running-operation)
 
 ## Feature - Expose build script compilation details
 
@@ -182,6 +210,7 @@ Extend the above mechanism to support prompting the user, when running via the t
 
 Some more features to mix into the above plan:
 
+- Honour same environment variables as command-line `gradle` invocation.
 - Cancelled build is gracefully stopped
 - Richer events during execution:
     - Task execution

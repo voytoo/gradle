@@ -16,8 +16,10 @@
 
 package org.gradle.api.internal.artifacts.ivyservice.resolveengine.result;
 
+import org.gradle.api.artifacts.ModuleVersionIdentifier;
 import org.gradle.api.artifacts.component.ComponentSelector;
 import org.gradle.api.artifacts.result.ComponentSelectionReason;
+import org.gradle.api.internal.artifacts.ModuleVersionIdentifierSerializer;
 import org.gradle.api.internal.artifacts.ivyservice.ModuleVersionResolveException;
 import org.gradle.messaging.serialize.Decoder;
 import org.gradle.messaging.serialize.Encoder;
@@ -30,16 +32,16 @@ public class InternalDependencyResultSerializer {
     private final static byte FAILED = 1;
     private final ComponentSelectorSerializer componentSelectorSerializer = new ComponentSelectorSerializer();
     private final ComponentSelectionReasonSerializer componentSelectionReasonSerializer = new ComponentSelectionReasonSerializer();
-    private final ModuleVersionSelectionSerializer moduleVersionSelectionSerializer = new ModuleVersionSelectionSerializer();
+    private final ModuleVersionIdentifierSerializer moduleVersionIdentifierSerializer = new ModuleVersionIdentifierSerializer();
 
     public InternalDependencyResult read(Decoder decoder, Map<ComponentSelector, ModuleVersionResolveException> failures) throws IOException {
         ComponentSelector requested = componentSelectorSerializer.read(decoder);
-        ComponentSelectionReason reason = componentSelectionReasonSerializer.read(decoder);
         byte resultByte = decoder.readByte();
         if (resultByte == SUCCESSFUL) {
-            ModuleVersionSelection selected = moduleVersionSelectionSerializer.read(decoder);
-            return new DefaultInternalDependencyResult(requested, selected, reason, null);
+            ModuleVersionIdentifier selected = moduleVersionIdentifierSerializer.read(decoder);
+            return new DefaultInternalDependencyResult(requested, selected, null, null);
         } else if (resultByte == FAILED) {
+            ComponentSelectionReason reason = componentSelectionReasonSerializer.read(decoder);
             ModuleVersionResolveException failure = failures.get(requested);
             return new DefaultInternalDependencyResult(requested, null, reason, failure);
         } else {
@@ -49,12 +51,12 @@ public class InternalDependencyResultSerializer {
 
     public void write(Encoder encoder, InternalDependencyResult value) throws IOException {
         componentSelectorSerializer.write(encoder, value.getRequested());
-        componentSelectionReasonSerializer.write(encoder, value.getReason());
         if (value.getFailure() == null) {
             encoder.writeByte(SUCCESSFUL);
-            moduleVersionSelectionSerializer.write(encoder, value.getSelected());
+            moduleVersionIdentifierSerializer.write(encoder, value.getSelected());
         } else {
             encoder.writeByte(FAILED);
+            componentSelectionReasonSerializer.write(encoder, value.getReason());
         }
     }
 }

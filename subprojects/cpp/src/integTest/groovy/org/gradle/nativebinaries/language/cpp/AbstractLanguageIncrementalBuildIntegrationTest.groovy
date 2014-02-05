@@ -32,7 +32,7 @@ import static org.gradle.util.TextUtil.escapeString
 
 abstract class AbstractLanguageIncrementalBuildIntegrationTest extends AbstractInstalledToolChainIntegrationSpec {
 
-    static boolean multiPlatformsAvailable = false
+    static boolean multiPlatformsAvailable = true
 
     IncrementalHelloWorldApp app
     String mainCompileTask
@@ -312,12 +312,15 @@ abstract class AbstractLanguageIncrementalBuildIntegrationTest extends AbstractI
         def snapshot = executable.snapshot()
 
         and:
-        def linkerArgs = toolChain.isVisualCpp() ? "'/DEBUG'" : OperatingSystem.current().isMacOsX() ? "'-no_pie'" : "'-q'";
+        def linkerArgs =
+            toolChain.isVisualCpp() ? "'/DEBUG'" : OperatingSystem.current().isMacOsX() ? "'-Xlinker', '-no_pie'" : "'-Xlinker', '-q'";
         linkerArgs = escapeString(linkerArgs)
         buildFile << """
             executables {
                 main {
-                    binaries.all { linker.args ${escapeString(linkerArgs)} }
+                    binaries.all {
+                        linker.args ${escapeString(linkerArgs)}
+                    }
                 }
             }
 """

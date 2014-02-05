@@ -16,11 +16,13 @@
 
 package org.gradle.nativebinaries.language.cpp.fixtures.app
 
+import org.gradle.internal.os.OperatingSystem
+
 class ObjectiveCHelloWorldApp extends IncrementalHelloWorldApp {
 
     @Override
     SourceFile getMainSource() {
-        return sourceFile("objectiveC", "main.m", """
+        return sourceFile("objc", "main.m", """
             // Simple hello world app
             #import <Foundation/Foundation.h>
             #import "hello.h"
@@ -36,7 +38,7 @@ class ObjectiveCHelloWorldApp extends IncrementalHelloWorldApp {
 
     @Override
     SourceFile getAlternateMainSource() {
-        return sourceFile("objectiveC", "main.m", """
+        return sourceFile("objc", "main.m", """
             #import <Foundation/Foundation.h>
             #import "hello.h"
 
@@ -63,7 +65,7 @@ class ObjectiveCHelloWorldApp extends IncrementalHelloWorldApp {
     @Override
     List<SourceFile> getLibrarySources() {
         return [
-                sourceFile("objectiveC", "hello.m", """
+                sourceFile("objc", "hello.m", """
             #import <Foundation/Foundation.h>
             #import "hello.h"
 
@@ -74,10 +76,12 @@ class ObjectiveCHelloWorldApp extends IncrementalHelloWorldApp {
                 #else
                 NSString *helloWorld = @"${HELLO_WORLD}\\n";
                 #endif
-                printf("%s", [helloWorld UTF8String]);
+                NSFileHandle *stdout = [NSFileHandle fileHandleWithStandardOutput];
+                NSData *strData = [helloWorld dataUsingEncoding: NSASCIIStringEncoding];
+                [stdout writeData: strData];
             }
         """),
-                sourceFile("objectiveC", "sum.m", """
+                sourceFile("objc", "sum.m", """
             #import "hello.h"
 
             int sum (int a, int b)
@@ -90,14 +94,16 @@ class ObjectiveCHelloWorldApp extends IncrementalHelloWorldApp {
     @Override
     List<SourceFile> getAlternateLibrarySources() {
         return [
-                sourceFile("objectiveC", "hello.m", """
+                sourceFile("objc", "hello.m", """
             #import <Foundation/Foundation.h>
             #import "hello.h"
 
             void sayHello()
             {
                 NSString *helloWorld = @"${HELLO_WORLD} - ${HELLO_WORLD_FRENCH}\\n";
-                printf("%s", [helloWorld UTF8String]);
+                NSFileHandle *stdout = [NSFileHandle fileHandleWithStandardOutput];
+                NSData *strData = [helloWorld dataUsingEncoding: NSASCIIStringEncoding];
+                [stdout writeData: strData];
             }
 
             // Extra function to ensure library has different size
@@ -105,7 +111,7 @@ class ObjectiveCHelloWorldApp extends IncrementalHelloWorldApp {
                 return 1000;
             }
         """),
-                sourceFile("objectiveC", "sum.m", """
+                sourceFile("objc", "sum.m", """
             #import "hello.h"
 
             int sum (int a, int b)
@@ -116,4 +122,26 @@ class ObjectiveCHelloWorldApp extends IncrementalHelloWorldApp {
     }
 
     String alternateLibraryOutput = "${HELLO_WORLD} - ${HELLO_WORLD_FRENCH}\n12"
+
+    public String getExtraConfiguration() {
+        def linkerArgs = OperatingSystem.current().isMacOsX() ? '"-framework", "Foundation"' : '"-lgnustep-base", "-lobjc"'
+        return """
+            binaries.all {
+                if (toolChain in Gcc) {
+                    objcCompiler.args "-I/usr/include/GNUstep", "-fconstant-string-class=NSConstantString", "-D_NATIVE_OBJC_EXCEPTIONS"
+                }
+
+                if (toolChain in Clang) {
+                    objcCompiler.args "-I/usr/include/GNUstep", "-I/usr/local/include/objc", "-fconstant-string-class=NSConstantString", "-D_NATIVE_OBJC_EXCEPTIONS"
+                }
+
+                linker.args $linkerArgs
+            }
+        """
+    }
+
+    @Override
+    List<String> getPluginList() {
+        ['objective-c']
+    }
 }

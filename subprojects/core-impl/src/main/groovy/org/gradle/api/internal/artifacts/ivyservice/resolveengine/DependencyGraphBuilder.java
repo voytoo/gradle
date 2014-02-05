@@ -146,7 +146,7 @@ public class DependencyGraphBuilder {
      */
     private void assembleResult(ResolveState resolveState, ResolvedConfigurationBuilder oldModelBuilder, ResolutionResultBuilder newModelBuilder) {
         FailureState failureState = new FailureState(resolveState.root);
-        newModelBuilder.start(resolveState.root.moduleRevision.id);
+        newModelBuilder.start(resolveState.root.moduleRevision.id, resolveState.root.metaData.getModuleVersion().getComponentId());
 
         // Visit the nodes
         for (ConfigurationNode resolvedConfiguration : resolveState.getConfigurationNodes()) {
@@ -391,8 +391,8 @@ public class DependencyGraphBuilder {
             return selector.getFailure();
         }
 
-        public ModuleVersionResolveState getSelected() {
-            return selector.getSelected();
+        public ModuleVersionIdentifier getSelected() {
+            return selector.getSelected().getSelectedId();
         }
 
         public ComponentSelectionReason getReason() {

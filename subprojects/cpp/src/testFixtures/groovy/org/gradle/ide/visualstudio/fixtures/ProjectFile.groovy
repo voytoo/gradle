@@ -16,6 +16,7 @@
 
 package org.gradle.ide.visualstudio.fixtures
 import org.gradle.test.fixtures.file.TestFile
+import org.gradle.util.TextUtil
 
 class ProjectFile {
     String name
@@ -48,17 +49,21 @@ class ProjectFile {
 
     public List<String> getSourceFiles() {
         def sources = itemGroup('Sources').ClCompile
-        return sources*.'@Include'
+        return normalise(sources*.'@Include')
     }
 
     public List<String> getResourceFiles() {
         def sources = itemGroup('References').ResourceCompile
-        return sources*.'@Include'
+        return normalise(sources*.'@Include')
     }
 
     public List<String> getHeaderFiles() {
         def sources = itemGroup('Headers').ClInclude
-        return sources*.'@Include'
+        return normalise(sources*.'@Include')
+    }
+
+    private static List<String> normalise(List<String> files) {
+        return files.collect { TextUtil.normaliseFileSeparators(it)}
     }
 
     private Node itemGroup(String label) {
@@ -66,44 +71,40 @@ class ProjectFile {
     }
 
     class Configuration {
-        String configName
+        String name
         String platformName
 
-        Configuration(String configName, String platformName) {
-            this.configName = configName
+        Configuration(String name, String platformName) {
+            this.name = name
             this.platformName = platformName
-        }
-
-        String getName() {
-            "${configName}|${platformName}"
-        }
-
-        String getMacros() {
-            buildConfiguration.ClCompile[0].PreprocessorDefinitions[0].text()
-        }
-
-        String getIncludePath() {
-            buildConfiguration.ClCompile[0].AdditionalIncludeDirectories[0].text()
-        }
-
-        String getResourceMacros() {
-            buildConfiguration.ResourceCompile[0].PreprocessorDefinitions[0].text()
-        }
-
-        String getResourceIncludePath() {
-            buildConfiguration.ResourceCompile[0].AdditionalIncludeDirectories[0].text()
         }
 
         ProjectFile getProject() {
             return ProjectFile.this
         }
 
+        String getMacros() {
+            buildConfiguration.NMakePreprocessorDefinitions[0].text()
+        }
+
+        String getIncludePath() {
+            TextUtil.normaliseFileSeparators(buildConfiguration.NMakeIncludeSearchPath[0].text())
+        }
+
+        String getBuildCommand() {
+            TextUtil.normaliseFileSeparators(buildConfiguration.NMakeBuildCommandLine[0].text())
+        }
+
+        String getOutputFile() {
+            TextUtil.normaliseFileSeparators(buildConfiguration.NMakeOutput[0].text())
+        }
+
         private Node getBuildConfiguration() {
-            projectXml.ItemDefinitionGroup.find({ it.'@Label' == 'VSBuildConfiguration' && it.'@Condition' == condition}) as Node
+            projectXml.PropertyGroup.find({ it.'@Label' == 'NMakeConfiguration' && it.'@Condition' == condition}) as Node
         }
 
         private String getCondition() {
-            "'\$(Configuration)|\$(Platform)'=='${configName}|${platformName}'"
+            "'\$(Configuration)|\$(Platform)'=='${name}|${platformName}'"
         }
     }
 }

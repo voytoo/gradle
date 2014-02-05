@@ -566,6 +566,10 @@ The implementation will also remove stale object files.
     - Change a source file so that it contains an error. Compilation fails.
     - Change the source file to fix the error and change another source file. Compilation succeeds.
 
+### Open issues
+
+- Need to handle `#import` with Visual C++, which may reference a `.tld` file.
+
 ## Story: Modify command line arguments for binary tool prior to execution
 
 This story provides a 'hook' allowing the build author to control the exact set of arguments passed to a tool chain executable.
@@ -1196,6 +1200,7 @@ This story moves definition and configuration of the source sets for a component
     - Mention in the 'native binaries' user guide chapter.
     - Add types and extensions to DSL reference.
     - List the new plugins in the 'standard plugins'
+    - Add Objective-C and Objective-C++ samples.
 
 #### Test cases
 
@@ -1204,7 +1209,7 @@ This story moves definition and configuration of the source sets for a component
 - Add `HelloWorldApp` implementation based on Objective-C++ and add `AbstractLanguageIntegrationTest` and `AbstractLanguageIncrementalBuildIntegrationTest` subclasses
   that use this.
 - Add `HelloWorldApp` implementation that uses a mix of C, C++, Objective-C and Objective-C++ as for `MixedLanguageIntegrationTest`.
-- Source layout for Objective-C and Objective-C++ can be customised
+- Source layout for Objective-C and Objective-C++ can be customised.
 - Reasonable error message when attempting to build binary from Objective-C or Objective-C++ when using Visual Studio.
 
 #### Open issues
@@ -1854,11 +1859,17 @@ TBD
 * Understand the various output file types: PE, ELF, Mach-O, COFF
 * Bare-bones tool chain using GNU binutils
 * Should be able to run the C preprocessor on assembler source file.
-* Should use the registry to find visual C++ and SDK.
 * Add support for cygwin-64 (uses a different data model to windows) and mingw under cygwin.
 * Install task should generate a shell script as well as a batch script when running under cygwin.
 * GCC and Clang under cygwin target the cygwin runtime, not the windows runtime.
 * Add language level to C and C++ source sets.
 * The `gcc` provided by XCode on OS X is actually a repackaged `clang`. Should distinguish between building with the `gcc` provided by XCode, and building with a real `gcc`
   install, eg via a ports toolkit.
-* Adding other languages as external plugins
+* Adding other languages as external plugins.
+* Consume dependencies from cocoapods repository.
+* Publish to cocoapods repository.
+* Consume dependencies from NuGet repository.
+* Publish to NuGet repository.
+* JNI plugin generates native header, and sets up the JNI stuff in $java.home as a platform library.
+* Model minimum OS version.
+    * For OS X can use -mmacosx-version-min option.

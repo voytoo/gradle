@@ -19,17 +19,17 @@ package org.gradle.plugin
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
 import org.gradle.integtests.fixtures.AbstractIntegrationSpec
-import org.gradle.plugin.resolve.internal.AndroidPluginMapper
 import org.gradle.test.fixtures.bintray.BintrayApi
 import org.gradle.test.fixtures.bintray.BintrayTestServer
 import org.gradle.test.fixtures.plugin.PluginBuilder
+import org.gradle.util.GradleVersion
 import org.junit.Rule
 
 import static org.gradle.util.TextUtil.toPlatformLineSeparators
 
 class PluginHandlerScriptIntegTest extends AbstractIntegrationSpec {
 
-    private static final String SCRIPT = "println 'out'; plugins { println 'in' }"
+    private static final String SCRIPT = "plugins { println 'in' }; println 'out'"
 
     @Rule BintrayTestServer bintray = new BintrayTestServer(executer, mavenRepo) // provides a double for JCenter
     def pluginBuilder = new PluginBuilder(executer, file("plugin"))
@@ -41,15 +41,9 @@ class PluginHandlerScriptIntegTest extends AbstractIntegrationSpec {
     def "build scripts have plugin blocks"() {
         when:
         buildFile << SCRIPT
-        buildFile << """
-            plugins {
-              apply plugin: 'java'
-            }
-        """
 
         then:
         executesCorrectly()
-        output.contains "javadoc" // task added by java plugin
     }
 
     def "settings scripts have plugin blocks"() {
@@ -96,7 +90,7 @@ class PluginHandlerScriptIntegTest extends AbstractIntegrationSpec {
 
     def void executesCorrectly() {
         succeeds "tasks"
-        assert output.contains(toPlatformLineSeparators("in\nout\n")) // Testing the the plugins {} block is extracted and executed before the “main” content
+        assert output.contains(toPlatformLineSeparators("in\nout\n"))
     }
 
     void "plugins block has no implicit access to owner context"() {
@@ -129,39 +123,31 @@ class PluginHandlerScriptIntegTest extends AbstractIntegrationSpec {
         output.contains("end-of-plugins")
     }
 
-    void "can resolve android plugin"() {
-        given:
-        bintray.start()
-
-        // Not expecting a search of the bintray API, as there is an explicit mapper for this guy
-        publishPluginToBintray(AndroidPluginMapper.ID, AndroidPluginMapper.GROUP, AndroidPluginMapper.NAME)
-
+    void "can resolve core plugins"() {
+        when:
         buildScript """
-          plugins {
-            apply plugin: "$AndroidPluginMapper.ID", version: $pluginVersion
-          }
+            plugins {
+              apply plugin: 'java'
+            }
         """
 
-        when:
-        succeeds pluginTaskName
-
         then:
-        output.contains pluginMessage
+        succeeds "javadoc"
     }
 
-    def "android plugin requires version"() {
+    void "core plugins cannot have a version number"() {
         given:
         buildScript """
-          plugins {
-            apply plugin: "$AndroidPluginMapper.ID"
-          }
+            plugins {
+                apply plugin: "java", version: "1.0"
+            }
         """
 
         when:
         fails "tasks"
 
         then:
-        failure.assertHasCause("The 'android' plugin requires a version")
+        failure.assertHasCause("Plugin 'java' is a core Gradle plugin, which cannot be specified with a version number")
     }
 
     def void publishPluginToBintray(String id, String group, String name, String version = pluginVersion) {
@@ -206,21 +192,6 @@ class PluginHandlerScriptIntegTest extends AbstractIntegrationSpec {
         output.contains pluginMessage
     }
 
-    void "core plugins cannot have a version number"() {
-        given:
-        buildScript """
-            plugins {
-                apply plugin: "java", version: "1.0"
-            }
-        """
-
-        when:
-        fails "tasks"
-
-        then:
-        failure.assertHasCause("Core plugins cannot have a version number. They are versioned with Gradle itself.")
-    }
-
     void "plugins block does not leak into build script proper"() {
         given:
         buildFile << """
@@ -243,4 +214,157 @@ class PluginHandlerScriptIntegTest extends AbstractIntegrationSpec {
         output.contains("configurations: 1")
         output.contains("plugins transitive: false")
     }
+
+    def "buildscript blocks are allowed before plugin statements"() {
+        when:
+        buildScript """
+            buildscript {}
+            plugins {}
+        """
+
+        then:
+        succeeds "tasks"
+    }
+
+    def "buildscript blocks are not allowed after plugin blocks"() {
+        when:
+        buildScript """
+            plugins {}
+            buildscript {}
+        """
+
+        then:
+        fails "tasks"
+
+        and:
+        failure.assertHasLineNumber 3
+        errorOutput.contains("all buildscript {} blocks must appear before any plugins {} blocks")
+    }
+
+    def "build logic cannot precede plugins block"() {
+        when:
+        buildScript """
+            someThing()
+            plugins {}
+        """
+
+        then:
+        fails "tasks"
+
+        and:
+        failure.assertHasLineNumber 3
+        errorOutput.contains "only buildscript {} and and other plugins {} script blocks are allowed before plugins {} blocks, no other statements are allowed"
+    }
+
+    def "build logic cannot precede any plugins block"() {
+        when:
+        buildScript """
+            plugins {}
+            someThing()
+            plugins {}
+        """
+
+        then:
+        fails "tasks"
+
+        and:
+        failure.assertHasLineNumber 4
+        errorOutput.contains "only buildscript {} and and other plugins {} script blocks are allowed before plugins {} blocks, no other statements are allowed"
+    }
+
+    def "failed resolution provides helpful error message"() {
+        given:
+        bintray.start()
+
+        buildScript """
+            plugins {
+                apply plugin: "foo"
+            }
+        """
+
+        and:
+        bintray.api.expectPackageSearch("foo")
+
+        when:
+        fails "tasks"
+
+        then:
+        errorOutput.contains "Cannot resolve plugin request [plugin: 'foo'] from plugin repositories:"
+        errorOutput.contains "- Gradle Distribution Plugins (listing: http://gradle.org/docs/${GradleVersion.current().version}/userguide/standard_plugins.html)"
+        errorOutput.contains "- Gradle Bintray Plugin Repository (listing: https://bintray.com/gradle-plugins-development/gradle-plugins)"
+    }
+
+    private publishTestPlugin() {
+        def pluginBuilder = new PluginBuilder(executer, testDirectory.file("plugin"))
+
+        def module = mavenRepo.module("plugin", "plugin")
+        def artifactFile = module.artifact([:]).artifactFile
+        module.publish()
+
+        def message = "from plugin"
+        def taskName = "pluginTask"
+        pluginBuilder.addPluginWithPrintlnTask(taskName, message, "plugin")
+        pluginBuilder.publishTo(artifactFile)
+    }
+
+    private testPluginBuildscriptBlock() {
+        return """
+            buildscript {
+                repositories {
+                    maven { url "$mavenRepo.uri" }
+                }
+                dependencies {
+                    classpath "plugin:plugin:1.0"
+                }
+            }
+        """
+    }
+
+    private testPluginPluginsBlock() {
+        return """
+            plugins {
+                apply plugin: "plugin", version: "1.0"
+            }
+        """
+    }
+
+    def "cannot apply plugins added to buildscript classpath in plugins block"() {
+        given:
+        publishTestPlugin()
+
+        when:
+        buildScript """
+            ${testPluginBuildscriptBlock()}
+            ${testPluginPluginsBlock()}
+        """
+
+        then:
+        fails "tasks"
+
+        and:
+        errorOutput.contains "Plugin 'plugin' is already on the script classpath (plugins on the script classpath cannot be used in a plugins {} block; move \"apply plugin: 'plugin'\" outside of the plugins {} block)"
+    }
+
+    def "cannot apply plugins added to parent buildscript classpath in plugins block"() {
+        given:
+        publishTestPlugin()
+
+        when:
+        buildScript """
+            ${testPluginBuildscriptBlock()}
+        """
+
+        settingsFile << "include 'sub'"
+
+        file("sub/build.gradle") << """
+            ${testPluginPluginsBlock()}
+        """
+
+        then:
+        fails "sub:tasks"
+
+        and:
+        errorOutput.contains "Plugin 'plugin' is already on the script classpath (plugins on the script classpath cannot be used in a plugins {} block; move \"apply plugin: 'plugin'\" outside of the plugins {} block)"
+    }
+
 }

@@ -32,22 +32,30 @@ class ObjectiveCLanguageIncrementalBuildIntegrationTest extends AbstractLanguage
         multiPlatformsAvailable = OperatingSystem.current().isMacOsX();
     }
 
-    // TODO Rene: same configuration as in ObjectiveCLanguageIntegrationTest; Move into a fixture
-    def "setup"() {
-        def linkerArgs = OperatingSystem.current().isMacOsX() ? '"-framework", "Foundation"' : '"-lgnustep-base", "-lobjc"'
-        buildFile << """
-            binaries.all {
-                if (toolChain in Gcc) {
-                    objectiveCCompiler.args "-I/usr/include/GNUstep", "-fconstant-string-class=NSConstantString", "-D_NATIVE_OBJC_EXCEPTIONS"
-                }
+    def "recompiles binary when #statement header file changes"() {
+        println sourceFile.text
+        sourceFile.text = sourceFile.text.replaceFirst('#import "hello.h"', "#$statement \"hello.h\"")
+        println sourceFile.text
 
-                if (toolChain in Clang) {
-                    objectiveCCompiler.args "-I/usr/include/GNUstep", "-I/usr/local/include/objc", "-fconstant-string-class=NSConstantString", "-D_NATIVE_OBJC_EXCEPTIONS"
-                }
+        given:
+        run "installMainExecutable"
 
-                linker.args $linkerArgs
-            }
-        """
+        when:
+        headerFile << """
+            int unused();
+"""
+        run "mainExecutable"
+
+        then:
+        executedAndNotSkipped libraryCompileTask
+        executedAndNotSkipped mainCompileTask
+
+
+        skipped ":linkHelloSharedLibrary", ":helloSharedLibrary"
+        skipped ":linkMainExecutable", ":mainExecutable"
+
+        where:
+        statement << ["include", "import"]
     }
 
     @Override

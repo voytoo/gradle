@@ -511,6 +511,15 @@
                 <td>org.gradle.nativebinaries.toolchain.ToolChain</td>
             </tr>
             <tr>
+                <td>org.gradle.nativebinaries.toolchain.Gcc</td>
+            </tr>
+            <tr>
+                <td>org.gradle.nativebinaries.toolchain.Clang</td>
+            </tr>
+            <tr>
+                <td>org.gradle.nativebinaries.toolchain.VisualCpp</td>
+            </tr>
+            <tr>
                 <td>org.gradle.language.assembler.AssemblerSourceSet</td>
             </tr>
             <tr>
@@ -518,6 +527,12 @@
             </tr>
             <tr>
                 <td>org.gradle.language.cpp.CppSourceSet</td>
+            </tr>
+            <tr>
+                <td>org.gradle.language.objectivec.ObjectiveCSourceSet</td>
+            </tr>
+            <tr>
+                <td>org.gradle.language.objectivecpp.ObjectiveCppSourceSet</td>
             </tr>
             <tr>
                 <td>org.gradle.language.rc.WindowsResourceSet</td>
@@ -543,6 +558,12 @@
             </tr>
             <tr>
                 <td>org.gradle.nativebinaries.language.assembler.tasks.Assemble</td>
+            </tr>
+            <tr>
+                <td>org.gradle.nativebinaries.language.objectivec.tasks.ObjectiveCCompile</td>
+            </tr>
+            <tr>
+                <td>org.gradle.nativebinaries.language.objectivecpp.tasks.ObjectiveCppCompile</td>
             </tr>
             <tr>
                 <td>org.gradle.nativebinaries.tasks.LinkExecutable</td>
