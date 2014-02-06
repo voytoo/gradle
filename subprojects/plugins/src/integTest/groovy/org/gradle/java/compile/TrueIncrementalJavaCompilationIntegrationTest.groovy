@@ -9,8 +9,10 @@ class TrueIncrementalJavaCompilationIntegrationTest extends AbstractIntegrationS
 
     def setup() {
         buildFile << """
-            apply plugin: 'java'
-//            compileJava.options.fork = true
+            allprojects {
+                apply plugin: 'java'
+                //compileJava.options.fork = true
+            }
 
             compileJava {
                 def times = [:]
@@ -157,5 +159,33 @@ class TrueIncrementalJavaCompilationIntegrationTest extends AbstractIntegrationS
         then:
         unchangedFiles.empty
         changedFiles.containsAll(['WithConst', 'AnotherPersonImpl', 'PersonImpl', 'Person'])
+    }
+
+    def "understands inter-project dependencies"() {
+        settingsFile << "include 'api'"
+        buildFile << "dependencies { compile project(':api') }"
+
+        file("api/src/main/java/org/A.java") << """package org; public class A {}"""
+        file("api/src/main/java/org/B.java") << """package org; public class B {}"""
+
+        file("src/main/java/org/ConsumesA.java") << """package org;
+            public class ConsumesA { A a = new A(); }
+        """
+        file("src/main/java/org/ConsumesB.java") << """package org;
+            public class ConsumesB { B b = new B(); }
+        """
+
+        run "compileJava"
+
+        file("api/src/main/java/org/B.java").text = """package org; public class B {
+            public B() { System.out.println("foo"); }
+        }
+        """
+
+        when: run "compileJava"
+
+        then:
+        changedFiles == ['ConsumesB'] as Set
+        unchangedFiles.contains('ConsumesA')
     }
 }

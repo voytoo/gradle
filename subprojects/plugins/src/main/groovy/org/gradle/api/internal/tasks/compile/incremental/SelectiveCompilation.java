@@ -22,17 +22,23 @@ public class SelectiveCompilation {
     private final FileCollection classpath;
     private final File compileDestination;
     private final File classTreeCache;
+    private File classDeltaCache;
+    private SelectiveJavaCompiler compiler;
     private static final Logger LOG = Logging.getLogger(SelectiveCompilation.class);
-    private boolean rebuildNeeded;
+    private String rebuildNeeded;
+    private boolean compilationNeeded = true;
 
     public SelectiveCompilation(IncrementalTaskInputs inputs, FileTree source, FileCollection compileClasspath, final File compileDestination,
-                                File classTreeCache, final SelectiveJavaCompiler compiler, final Set<File> sourceDirs) {
+                                final File classTreeCache, final File classDeltaCache, final SelectiveJavaCompiler compiler, final Set<File> sourceDirs) {
         this.compileDestination = compileDestination;
         this.classTreeCache = classTreeCache;
+        this.classDeltaCache = classDeltaCache;
+        this.compiler = compiler;
 
         if (!inputs.isIncremental()) {
             this.source = source;
             this.classpath = compileClasspath;
+            this.rebuildNeeded = "compilation is not incremental";
         } else {
             Clock clock = new Clock();
             final InputOutputMapper mapper = new InputOutputMapper(sourceDirs, compileDestination);
@@ -44,42 +50,67 @@ public class SelectiveCompilation {
             final PatternSet changedSourceOnly = new PatternSet();
             inputs.outOfDate(new Action<InputFileDetails>() {
                 public void execute(InputFileDetails inputFileDetails) {
-                    if (rebuildNeeded) {
+                    if (rebuildNeeded != null) {
                         return;
                     }
-                    String name = inputFileDetails.getFile().getName();
+                    File inputFile = inputFileDetails.getFile();
+                    String name = inputFile.getName();
                     if (name.endsWith(".java")) {
-                        JavaSourceClass source = mapper.toJavaSourceClass(inputFileDetails.getFile());
-                        compiler.addStaleClass(source.getOutputFile());
+                        JavaSourceClass source = mapper.toJavaSourceClass(inputFile);
+                        compiler.addStaleClass(source);
                         changedSourceOnly.include(source.getRelativePath());
                         Set<String> actualDependents = tree.getActualDependents(source.getClassName());
                         if (actualDependents == null) {
-                            rebuildNeeded = true;
+                            rebuildNeeded = "change to " + source.getClassName() + " requires full rebuild";
                             return;
                         }
                         for (String d : actualDependents) {
                             JavaSourceClass dSource = mapper.toJavaSourceClass(d);
-                            compiler.addStaleClass(dSource.getOutputFile());
+                            compiler.addStaleClass(dSource);
                             changedSourceOnly.include(dSource.getRelativePath());
+                        }
+                    }
+                    if (name.endsWith(".jar")) {
+                        JarDeltaProvider delta = new JarDeltaProvider(inputFile);
+                        if (delta.isRebuildNeeded()) {
+                            //for example, a source annotation in the dependency jar has changed
+                            //or it's a change in a 3rd party jar
+                            rebuildNeeded = "change to " + inputFile + " requires full rebuild";
+                            return;
+                        }
+                        Iterable<String> classes = delta.getChangedClasses();
+                        for (String c : classes) {
+                            Set<String> actualDependents = tree.getActualDependents(c);
+                            for (String d : actualDependents) {
+                                JavaSourceClass dSource = mapper.toJavaSourceClass(d);
+                                compiler.addStaleClass(dSource);
+                                changedSourceOnly.include(dSource.getRelativePath());
+                            }
                         }
                     }
                 }
             });
-            if (rebuildNeeded) {
-                LOG.lifecycle("Stale classes detection completed in {}. The changes in the inputs require full rebuild anyway.", clock.getTime());
+            if (rebuildNeeded != null) {
+                LOG.lifecycle("Stale classes detection completed in {}. Rebuild needed: {}.", clock.getTime(), rebuildNeeded);
                 this.classpath = compileClasspath;
                 this.source = source;
                 return;
             }
             inputs.removed(new Action<InputFileDetails>() {
                 public void execute(InputFileDetails inputFileDetails) {
-                    compiler.addStaleClass(mapper.toJavaSourceClass(inputFileDetails.getFile()).getOutputFile());
+                    compiler.addStaleClass(mapper.toJavaSourceClass(inputFileDetails.getFile()));
                 }
             });
             //since we're compiling selectively we need to include the classes compiled previously
-            this.classpath = compileClasspath.plus(new SimpleFileCollection(compileDestination));
-            this.source = source.matching(changedSourceOnly);
-            LOG.lifecycle("Stale classes detection completed in {}. {} class files need recompilation. Compile include patterns: {}, Files to delete: {}", clock.getTime(), compiler.getStaleClasses().size(), changedSourceOnly.getIncludes(), compiler.getStaleClasses());
+            if (changedSourceOnly.getIncludes().isEmpty()) {
+                this.compilationNeeded = false;
+                this.classpath = compileClasspath;
+                this.source = source;
+            } else {
+                this.classpath = compileClasspath.plus(new SimpleFileCollection(compileDestination));
+                this.source = source.matching(changedSourceOnly);
+            }
+            LOG.lifecycle("Stale classes detection completed in {}. Stale classes: {}, Compile include patterns: {}, Files to delete: {}", clock.getTime(), compiler.getStaleClasses().size(), changedSourceOnly.getIncludes(), compiler.getStaleClasses());
         }
     }
 
@@ -88,7 +119,13 @@ public class SelectiveCompilation {
         ClassDependencyTree tree = new ClassDependencyTree(compileDestination);
         String time1 = clock.getTime();
         tree.writeTo(classTreeCache);
-        LOG.lifecycle("Bytecode analysis for incremental java compilation took {} (with serialization: {}). Wrote the class tree into {}.", time1, clock.getTime(), classTreeCache);
+
+        if (rebuildNeeded == null) {
+            classDeltaCache.getParentFile().mkdirs();
+            DummySerializer.writeTargetTo(classDeltaCache, compiler.getChangedSources());
+        }
+
+        LOG.lifecycle("Bytecode analysis for incremental java compilation took {} (with serialization: {}). Wrote the class tree into {}. Rebuild was needed: {}", time1, clock.getTime(), classTreeCache, rebuildNeeded);
     }
 
     public FileCollection getSource() {
@@ -97,5 +134,9 @@ public class SelectiveCompilation {
 
     public Iterable<File> getClasspath() {
         return classpath;
+    }
+
+    public boolean getCompilationNeeded() {
+        return compilationNeeded;
     }
 }

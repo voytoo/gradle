@@ -36,7 +36,8 @@ public class InputOutputMapper {
     public JavaSourceClass toJavaSourceClass(String className) {
         String relativePath = className.replaceAll("\\.", "/").concat(".java");
         for (File sourceDir : sourceDirs) {
-            if (new File(sourceDir, relativePath).isFile()) {
+            File sourceFile = new File(sourceDir, relativePath);
+            if (sourceFile.isFile()) {
                 return new JavaSourceClass(relativePath, compileDestination);
             }
         }

@@ -18,6 +18,7 @@ public class SelectiveJavaCompiler implements Compiler<JavaCompileSpec> {
     private Compiler<JavaCompileSpec> compiler;
     private List<File> staleClasses = new LinkedList<File>();
     private final static Logger LOG = Logging.getLogger(SelectiveJavaCompiler.class);
+    private List<String> changedSources = new LinkedList<String>();
 
     public SelectiveJavaCompiler(Compiler<JavaCompileSpec> compiler) {
         this.compiler = compiler;
@@ -32,11 +33,16 @@ public class SelectiveJavaCompiler implements Compiler<JavaCompileSpec> {
         return compiler.execute(spec);
     }
 
-    public void addStaleClass(File file) {
-        staleClasses.add(file);
+    public void addStaleClass(JavaSourceClass source) {
+        staleClasses.add(source.getOutputFile());
+        changedSources.add(source.getClassName());
     }
 
     public List<File> getStaleClasses() {
         return staleClasses;
+    }
+
+    public List<String> getChangedSources() {
+        return changedSources;
     }
 }

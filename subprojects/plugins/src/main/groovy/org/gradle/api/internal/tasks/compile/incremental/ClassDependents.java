@@ -10,21 +10,22 @@ import java.util.Set;
  */
 public class ClassDependents implements Serializable {
 
-    private final Set<String> dependentClasses;
-
-    public ClassDependents(Collection<String> dependentClasses) {
-        if (dependentClasses != null) {
-            this.dependentClasses = new LinkedHashSet<String>(dependentClasses);
-        } else {
-            this.dependentClasses = null;
-        }
-    }
+    private final Set<String> dependentClasses = new LinkedHashSet<String>();
+    private boolean dependentToAll;
 
     public Set<String> getDependentClasses() {
         return dependentClasses;
     }
 
     public boolean isDependentToAll() {
-        return dependentClasses == null;
+        return dependentToAll;
+    }
+
+    public void addClass(String className) {
+        dependentClasses.add(className);
+    }
+
+    public void setDependentToAll() {
+        dependentToAll = true;
     }
 }

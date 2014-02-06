@@ -17,6 +17,7 @@
 package org.gradle.api.tasks.compile;
 
 import org.gradle.api.AntBuilder;
+import org.gradle.api.Task;
 import org.gradle.api.file.SourceDirectorySet;
 import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.api.internal.tasks.compile.Compiler;
@@ -28,6 +29,7 @@ import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.WorkResult;
+import org.gradle.api.tasks.bundling.Jar;
 import org.gradle.api.tasks.incremental.IncrementalTaskInputs;
 import org.gradle.internal.Factory;
 import org.gradle.util.Clock;
@@ -64,7 +66,12 @@ public class Compile extends AbstractCompile {
         getLogger().lifecycle("{} uses incremental compiler hack", getPath());
         SelectiveJavaCompiler compiler = new SelectiveJavaCompiler(javaCompiler);
         SelectiveCompilation selectiveCompilation = new SelectiveCompilation(inputs, getSource(), getClasspath(), getDestinationDir(),
-                getClassTreeCache(), compiler, sourceDirs.getSrcDirs());
+                getClassTreeCache(), getClassDeltaCache(), compiler, sourceDirs.getSrcDirs());
+
+        if (!selectiveCompilation.getCompilationNeeded()) {
+            getLogger().lifecycle("{} - incremental compilation detected that no compilation is needed", getPath());
+            return;
+        }
 
         DefaultJavaCompileSpec spec = new DefaultJavaCompileSpec();
         spec.setSource(selectiveCompilation.getSource());
@@ -79,6 +86,11 @@ public class Compile extends AbstractCompile {
         setDidWork(result.getDidWork());
         getLogger().lifecycle(getPath() + " - compilation took " + clock.getTime());
         selectiveCompilation.compilationComplete();
+    }
+
+    private File getClassDeltaCache() {
+        Jar jar = (Jar) getProject().getTasks().getByName("jar");
+        return new File(jar.getArchivePath() + "-class-delta.bin");
     }
 
     private File getClassTreeCache() {

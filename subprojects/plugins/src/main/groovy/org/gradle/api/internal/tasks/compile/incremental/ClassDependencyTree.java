@@ -25,9 +25,6 @@ public class ClassDependencyTree implements Serializable {
 
     ClassDependencyTree(File compiledClassesDir, String packagePrefix) {
         Iterator output = FileUtils.iterateFiles(compiledClassesDir, new String[]{"class"}, true);
-        Multimap<String, String> allDependents = LinkedListMultimap.create();
-        Set<String> classes = new HashSet<String>();
-        Set<String> allDependentClasses = new HashSet<String>();
         ClassNameProvider nameProvider = new ClassNameProvider(compiledClassesDir);
         while (output.hasNext()) {
             File classFile = (File) output.next();
@@ -37,52 +34,36 @@ public class ClassDependencyTree implements Serializable {
             }
             try {
                 ClassAnalysis analysis = new ClassDependenciesAnalyzer().getClassAnalysis(className, classFile);
-                classes.add(className);
                 for (String dependency : analysis.getClassDependencies()) {
-                    if (!dependency.equals(className)) {
-                        allDependents.put(dependency, className);
+                    if (!dependency.equals(className) && dependency.startsWith(packagePrefix)) {
+                        getOrCreateDependentMapping(dependency).addClass(className);
                     }
                 }
                 if (analysis.isDependentToAll()) {
-                    allDependentClasses.add(className);
+                    getOrCreateDependentMapping(className).setDependentToAll();
                 }
             } catch (IOException e) {
                 throw new RuntimeException("Problems extracting class dependency from " + classFile, e);
             }
         }
-        //go through all dependents and use only internal class dependencies (e.g. exclude dependencies like java.util.List, etc)
-        for (String c : classes) {
-            ClassDependents d = allDependentClasses.contains(c)? new ClassDependents(null) : new ClassDependents(allDependents.get(c));
-            this.dependents.put(c, d);
+    }
+
+    private ClassDependents getOrCreateDependentMapping(String dependency) {
+        ClassDependents d = dependents.get(dependency);
+        if (d == null) {
+            d = new ClassDependents();
+            dependents.put(dependency, d);
         }
+        return d;
     }
 
     public void writeTo(File outputFile) {
-        try {
-            FileOutputStream out = new FileOutputStream(outputFile);
-            ObjectOutputStream objectStr = new ObjectOutputStream(out);
-            objectStr.writeObject(this);
-            objectStr.flush();
-            objectStr.close();
-            out.close();
-        } catch (IOException e) {
-            throw new RuntimeException("Problems writing the class tree to the output file " + outputFile, e);
-        }
+        ClassDependencyTree target = this;
+        DummySerializer.writeTargetTo(outputFile, target);
     }
 
     public static ClassDependencyTree loadFrom(File inputFile) {
-        FileInputStream in = null;
-        ObjectInputStream objectStr = null;
-        try {
-            in = new FileInputStream(inputFile);
-            objectStr = new ObjectInputStream(in);
-            return (ClassDependencyTree) objectStr.readObject();
-        } catch (Exception e) {
-            throw new RuntimeException("Problems reading the class tree to the output file " + inputFile, e);
-        } finally {
-            closeQuietly(in);
-            closeQuietly(objectStr);
-        }
+        return (ClassDependencyTree) DummySerializer.readFrom(inputFile);
     }
 
     public Set<String> getActualDependents(String className) {
@@ -102,6 +83,9 @@ public class ClassDependencyTree implements Serializable {
             return;
         }
         ClassDependents out = dependents.get(className);
+        if (out == null) {
+            return;
+        }
         if (out.isDependentToAll()) {
             dependentToAll.setValue(true);
             return;
