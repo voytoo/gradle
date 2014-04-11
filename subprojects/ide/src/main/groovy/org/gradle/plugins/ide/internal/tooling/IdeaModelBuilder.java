@@ -26,6 +26,9 @@ import org.gradle.tooling.model.idea.IdeaSourceDirectory;
 import org.gradle.tooling.provider.model.ToolingModelBuilder;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.*;
 
 public class IdeaModelBuilder implements ToolingModelBuilder {
@@ -38,34 +41,52 @@ public class IdeaModelBuilder implements ToolingModelBuilder {
 
     public DefaultIdeaProject buildAll(String modelName, Project project) {
         Project root = project.getRootProject();
-        applyIdeaPlugin(root);
+
+        List<String> notIdeaModules = new ArrayList<String>();
+
+        if (root.getProperties().containsKey("notIdeaModules")) {
+            String notIdeaModulesString = (String)project.getRootProject().getProperties().get("notIdeaModules");
+            for (String item : notIdeaModulesString.split(",")) {
+                notIdeaModules.add(item);
+            }
+        }
+
+        applyIdeaPlugin(root, notIdeaModules);
         DefaultGradleProject rootGradleProject = gradleProjectBuilder.buildAll(project);
-        return build(root, rootGradleProject);
+        return build(root, rootGradleProject, notIdeaModules);
     }
 
-    private void applyIdeaPlugin(Project root) {
+    private void applyIdeaPlugin(Project root, List<String> notIdeaModules) {
         Set<Project> allProjects = root.getAllprojects();
         for (Project p : allProjects) {
-            p.getPlugins().apply(IdeaPlugin.class);
+            if (!notIdeaModules.contains(p.getName())) {
+                p.getPlugins().apply(IdeaPlugin.class);
+            }
         }
         root.getPlugins().getPlugin(IdeaPlugin.class).makeSureModuleNamesAreUnique();
     }
 
-    private DefaultIdeaProject build(Project project, DefaultGradleProject rootGradleProject) {
+    private DefaultIdeaProject build(Project project, DefaultGradleProject rootGradleProject, List<String> notIdeaModules) {
         IdeaModel ideaModel = project.getPlugins().getPlugin(IdeaPlugin.class).getModel();
         IdeaProject projectModel = ideaModel.getProject();
+
 
         DefaultIdeaProject out = new DefaultIdeaProject()
                 .setName(projectModel.getName())
                 .setJdkName(projectModel.getJdkName())
                 .setLanguageLevel(new DefaultIdeaLanguageLevel(projectModel.getLanguageLevel().getLevel()));
 
+
         Map<String, DefaultIdeaModule> modules = new HashMap<String, DefaultIdeaModule>();
         for (IdeaModule module : projectModel.getModules()) {
-            appendModule(modules, module, out, rootGradleProject);
+            if (!notIdeaModules.contains(module.getName())) {
+                appendModule(modules, module, out, rootGradleProject);
+            }
         }
         for (IdeaModule module : projectModel.getModules()) {
-            buildDependencies(modules, module);
+            if (!notIdeaModules.contains(module.getName())) {
+                buildDependencies(modules, module);
+            }
         }
         out.setChildren(new LinkedList<DefaultIdeaModule>(modules.values()));
 
